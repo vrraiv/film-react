@@ -1,0 +1,38 @@
+export type WatchContext =
+  | 'theatre'
+  | 'home'
+  | 'airplane'
+  | 'friend-family-home'
+  | 'other'
+
+export type OwnedMediaFormat = '4k-uhd' | 'blu-ray' | 'dvd' | 'vhs'
+
+export type FilmMetadata = {
+  watchContext: WatchContext | ''
+  watchContextNote: string
+  ownedFormats: OwnedMediaFormat[]
+  onWishlist: boolean
+}
+
+export type FilmEntry = {
+  id: string
+  title: string
+  releaseYear: number | null
+  dateWatched: string
+  rating: number
+  tags: string[]
+  metadata: FilmMetadata
+  notes: string
+  isPublic: boolean
+}
+
+export type CreateFilmEntryInput = {
+  title: string
+  releaseYear?: number | null
+  dateWatched: string
+  rating: number
+  notes: string
+  tags?: string[]
+  metadata?: Partial<FilmMetadata>
+  isPublic?: boolean
+}

@@ -346,6 +346,27 @@ button {
   transform: none;
 }
 
+.button-row {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.button-secondary {
+  width: fit-content;
+  padding: var(--space-7) var(--space-12);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-control);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.button-secondary--danger {
+  border-color: var(--accent-line);
+  color: var(--accent-strong);
+}
+
 .status-message {
   margin: 0;
   color: var(--success);
@@ -394,6 +415,12 @@ button {
   margin: 0;
   white-space: pre-wrap;
   color: var(--text);
+}
+
+.film-card__actions {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
 }
 
 .placeholder-card {

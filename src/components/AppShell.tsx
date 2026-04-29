@@ -4,6 +4,7 @@ const contentNavItems = [
   { to: '/', label: 'Home' },
   { to: '/log', label: 'Log' },
   { to: '/insights', label: 'Insights' },
+  { to: '/preview-public', label: 'Public preview' },
 ]
 
 const settingsNavItems = [{ to: '/settings', label: 'Settings' }]
@@ -24,21 +25,21 @@ export function AppShell() {
         <div className="app-shell__nav-stack">
           <nav className="app-shell__nav" aria-label="Content pages">
             {contentNavItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                [
-                  'app-shell__nav-link',
-                  isActive ? 'app-shell__nav-link--active' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')
-              }
-            >
-              {item.label}
-            </NavLink>
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) =>
+                  [
+                    'app-shell__nav-link',
+                    isActive ? 'app-shell__nav-link--active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                }
+              >
+                {item.label}
+              </NavLink>
             ))}
           </nav>
 

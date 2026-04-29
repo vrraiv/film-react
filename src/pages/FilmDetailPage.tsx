@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { formatOwnedMedia, formatWatchContext, tasteTagLookup } from '../config/filmOptions'
+import { formatFilmTag, formatOwnedMedia, formatWatchContext } from '../config/filmOptions'
 import { useFilms } from '../hooks/useFilms'
 
 const formatDate = (value: string) =>
@@ -90,7 +90,7 @@ export function FilmDetailPage() {
             <dt>Taste tags</dt>
             <dd>
               {film.tags.length
-                ? film.tags.map((tag) => tasteTagLookup.get(tag)?.label ?? tag).join(', ')
+                ? film.tags.map((tag) => formatFilmTag(tag)).join(', ')
                 : 'None'}
             </dd>
           </div>

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import {
   formatOwnedMedia,
   formatWatchContext,
-  tasteTagLookup,
+  formatFilmTag,
 } from '../config/filmOptions'
 import type { FilmEntry } from '../types/film'
 
@@ -55,7 +55,7 @@ export function FilmList({ films, isLoading, onEdit, onDelete }: FilmListProps) 
             <div className="tag-row">
               {film.tags.map((tag) => (
                 <span className="tag-chip tag-chip--static" key={tag}>
-                  {tasteTagLookup.get(tag)?.label ?? tag}
+                  {formatFilmTag(tag)}
                 </span>
               ))}
             </div>

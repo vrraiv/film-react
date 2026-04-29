@@ -3,6 +3,7 @@ import {
   ownedMediaOptions,
   watchContextOptions,
 } from '../config/filmOptions'
+import { RATING_OPTIONS } from '../config/filmTags'
 import { TagInput } from './TagInput'
 import type { CreateFilmEntryInput, OwnedMediaFormat, WatchContext } from '../types/film'
 
@@ -67,7 +68,7 @@ export function FilmForm({ isSaving, onSubmit }: FilmFormProps) {
       title: form.title,
       releaseYear: form.releaseYear ? Number(form.releaseYear) : null,
       dateWatched: form.dateWatched,
-      rating: Number(form.rating),
+      rating: form.rating ? Number(form.rating) : null,
       tags: form.tags,
       metadata: {
         watchContext: form.watchContext,
@@ -129,18 +130,19 @@ export function FilmForm({ isSaving, onSubmit }: FilmFormProps) {
 
         <div className="field">
           <label htmlFor="rating">Rating</label>
-          <input
+          <select
             id="rating"
             name="rating"
-            type="number"
-            min="0"
-            max="5"
-            step="0.5"
             value={form.rating}
             onChange={handleChange('rating')}
-            placeholder="4.5"
-            required
-          />
+          >
+            <option value="">Unrated</option>
+            {RATING_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} - {option.description}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

@@ -43,7 +43,7 @@ export function FilmList({ films, isLoading }: FilmListProps) {
                 {formatDate(film.dateWatched)}
               </p>
             </div>
-            <span className="film-card__rating">{film.rating.toFixed(1)} / 5</span>
+            <span className="film-card__rating">{film.rating === null ? 'Unrated' : `${film.rating.toFixed(1)} / 5`}</span>
           </header>
 
           {film.tags.length > 0 ? (

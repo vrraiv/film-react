@@ -1,18 +1,5 @@
+import { FILM_TAGS, TAG_CATEGORIES, getTagById } from './filmTags'
 import type { OwnedMediaFormat, WatchContext } from '../types/film'
-
-export type TasteTagCategoryId =
-  | 'mood'
-  | 'pace'
-  | 'craft'
-  | 'theme'
-  | 'performance'
-
-export type TasteTagCategory = {
-  id: TasteTagCategoryId
-  label: string
-  description: string
-  tags: string[]
-}
 
 export const watchContextOptions: Array<{
   value: WatchContext
@@ -35,95 +22,34 @@ export const ownedMediaOptions: Array<{
   { value: 'vhs', label: 'VHS' },
 ]
 
-export const tasteTagCategories: TasteTagCategory[] = [
-  {
-    id: 'mood',
-    label: 'Mood',
-    description: 'The emotional register you want to return to.',
-    tags: [
-      'melancholic',
-      'romantic',
-      'tense',
-      'dreamlike',
-      'warm',
-      'playful',
-      'bleak',
-      'hopeful',
-    ],
-  },
-  {
-    id: 'pace',
-    label: 'Pace',
-    description: 'How the film moves and breathes.',
-    tags: [
-      'slow cinema',
-      'measured',
-      'propulsive',
-      'restless',
-      'patient',
-      'elliptical',
-    ],
-  },
-  {
-    id: 'craft',
-    label: 'Craft',
-    description: 'The formal qualities you respond to most.',
-    tags: [
-      'striking cinematography',
-      'precise editing',
-      'strong production design',
-      'memorable score',
-      'formal experimentation',
-      'sharp writing',
-    ],
-  },
-  {
-    id: 'theme',
-    label: 'Theme',
-    description: 'The ideas or subjects that keep pulling you in.',
-    tags: [
-      'memory',
-      'identity',
-      'obsession',
-      'class',
-      'grief',
-      'intimacy',
-      'alienation',
-      'friendship',
-    ],
-  },
-  {
-    id: 'performance',
-    label: 'Performance',
-    description: 'The acting style or performer energy you value.',
-    tags: [
-      'ensemble cast',
-      'star turn',
-      'understated acting',
-      'heightened acting',
-      'magnetic lead',
-      'supporting performances',
-    ],
-  },
-]
+export const filmTagOptions = FILM_TAGS.map((tag) => ({
+  categoryId: tag.category,
+  categoryLabel: TAG_CATEGORIES.find((category) => category.id === tag.category)?.label ?? tag.category,
+  label: tag.label,
+  value: tag.id,
+}))
 
-export const tasteTagOptions = tasteTagCategories.flatMap((category) =>
-  category.tags.map((tag) => ({
-    categoryId: category.id,
-    categoryLabel: category.label,
-    label: tag,
-    value: tag,
-  })),
+export const filmTagLookup = new Map(
+  FILM_TAGS.map((tag) => [tag.id, tag]),
 )
 
-export const tasteTagLookup = new Map(
-  tasteTagOptions.map((tag) => [tag.value, tag]),
+const legacyTagIdByNormalizedValue = new Map(
+  FILM_TAGS.flatMap((tag) => {
+    const normalizedLabel = tag.label.trim().toLowerCase().replace(/\s+/g, '_')
+    return [[normalizedLabel, tag.id], [tag.id, tag.id]]
+  }),
 )
 
-export const normalizeTag = (value: string) => value.trim().toLowerCase()
+export const normalizeTag = (value: string) => {
+  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, '_')
+  return legacyTagIdByNormalizedValue.get(normalized) ?? ''
+}
 
 export const formatWatchContext = (value: WatchContext | '') =>
   watchContextOptions.find((option) => option.value === value)?.label ?? 'Unspecified'
 
 export const formatOwnedMedia = (value: OwnedMediaFormat) =>
   ownedMediaOptions.find((option) => option.value === value)?.label ?? value
+
+export const formatFilmTag = (value: string) =>
+  getTagById(value)?.label ?? value

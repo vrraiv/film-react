@@ -3,6 +3,7 @@ import { FilmFilters, type FilmFiltersState } from '../components/FilmFilters'
 import { FilmForm } from '../components/FilmForm'
 import { FilmList } from '../components/FilmList'
 import { useFilms } from '../hooks/useFilms'
+import type { FilmEntry } from '../types/film'
 
 const defaultFilters: FilmFiltersState = {
   selectedTag: '',
@@ -11,8 +12,9 @@ const defaultFilters: FilmFiltersState = {
 }
 
 export function LogPage() {
-  const { films, isLoading, isSaving, error, lastSavedFilmId, addFilm } = useFilms()
+  const { films, isLoading, isSaving, error, lastSavedFilmId, addFilm, updateFilm, deleteFilm } = useFilms()
   const [filters, setFilters] = useState<FilmFiltersState>(defaultFilters)
+  const [editingFilm, setEditingFilm] = useState<FilmEntry | null>(null)
   const latestSavedFilm = films.find((film) => film.id === lastSavedFilmId)
 
   const filteredFilms = useMemo(() => {
@@ -25,7 +27,7 @@ export function LogPage() {
         return false
       }
 
-      if (minimumRating !== null && film.rating < minimumRating) {
+      if (minimumRating !== null && (film.rating === null || film.rating < minimumRating)) {
         return false
       }
 
@@ -39,6 +41,18 @@ export function LogPage() {
       return true
     })
   }, [films, filters])
+
+  const handleDeleteFilm = async (film: FilmEntry) => {
+    const shouldDelete = window.confirm(`Delete "${film.title}" from your log?`)
+    if (!shouldDelete) {
+      return
+    }
+
+    await deleteFilm(film.id)
+    if (editingFilm?.id === film.id) {
+      setEditingFilm(null)
+    }
+  }
 
   return (
     <section className="page">
@@ -54,14 +68,23 @@ export function LogPage() {
       <div className="log-grid">
         <section className="panel">
           <header className="panel__header">
-            <h3 className="panel__title">New entry</h3>
+            <h3 className="panel__title">{editingFilm ? 'Edit entry' : 'New entry'}</h3>
             <p className="page__copy">
               Taste lives in the tag system. Practical details like watch context,
               ownership, and wishlist status stay separate.
             </p>
           </header>
 
-          <FilmForm isSaving={isSaving} onSubmit={addFilm} />
+          <FilmForm
+            key={editingFilm?.id ?? 'new'}
+            isSaving={isSaving}
+            onSubmit={(input) =>
+              editingFilm ? updateFilm(editingFilm.id, input) : addFilm(input)
+            }
+            initialValues={editingFilm ?? undefined}
+            submitLabel={editingFilm ? 'Save changes' : 'Add film'}
+            onCancel={editingFilm ? () => setEditingFilm(null) : undefined}
+          />
 
           {error ? <p className="empty-state">{error}</p> : null}
           {latestSavedFilm ? (
@@ -85,7 +108,12 @@ export function LogPage() {
             Showing {filteredFilms.length} of {films.length} logged films.
           </p>
 
-          <FilmList films={filteredFilms} isLoading={isLoading} />
+          <FilmList
+            films={filteredFilms}
+            isLoading={isLoading}
+            onEdit={setEditingFilm}
+            onDelete={handleDeleteFilm}
+          />
         </section>
       </div>
     </section>

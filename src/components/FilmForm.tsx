@@ -3,12 +3,21 @@ import {
   ownedMediaOptions,
   watchContextOptions,
 } from '../config/filmOptions'
+import { RATING_OPTIONS } from '../config/filmTags'
 import { TagInput } from './TagInput'
-import type { CreateFilmEntryInput, OwnedMediaFormat, WatchContext } from '../types/film'
+import type {
+  CreateFilmEntryInput,
+  FilmEntry,
+  OwnedMediaFormat,
+  WatchContext,
+} from '../types/film'
 
 type FilmFormProps = {
   isSaving: boolean
   onSubmit: (input: CreateFilmEntryInput) => Promise<boolean>
+  initialValues?: FilmEntry
+  submitLabel?: string
+  onCancel?: () => void
 }
 
 type FilmFormState = {
@@ -24,21 +33,21 @@ type FilmFormState = {
   notes: string
 }
 
-const initialState = (): FilmFormState => ({
-  title: '',
-  releaseYear: '',
-  dateWatched: new Date().toISOString().slice(0, 10),
-  rating: '',
-  tags: [],
-  watchContext: '',
-  watchContextNote: '',
-  ownedFormats: [],
-  onWishlist: false,
-  notes: '',
+const initialState = (film?: FilmEntry): FilmFormState => ({
+  title: film?.title ?? '',
+  releaseYear: film?.releaseYear ? String(film.releaseYear) : '',
+  dateWatched: film?.dateWatched ?? new Date().toISOString().slice(0, 10),
+  rating: film?.rating === null || film?.rating === undefined ? '' : String(film.rating),
+  tags: film?.tags ?? [],
+  watchContext: film?.metadata.watchContext ?? '',
+  watchContextNote: film?.metadata.watchContextNote ?? '',
+  ownedFormats: film?.metadata.ownedFormats ?? [],
+  onWishlist: film?.metadata.onWishlist ?? false,
+  notes: film?.notes ?? '',
 })
 
-export function FilmForm({ isSaving, onSubmit }: FilmFormProps) {
-  const [form, setForm] = useState<FilmFormState>(initialState)
+export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add film', onCancel }: FilmFormProps) {
+  const [form, setForm] = useState<FilmFormState>(() => initialState(initialValues))
 
   const handleChange =
     (field: keyof FilmFormState) =>
@@ -67,7 +76,7 @@ export function FilmForm({ isSaving, onSubmit }: FilmFormProps) {
       title: form.title,
       releaseYear: form.releaseYear ? Number(form.releaseYear) : null,
       dateWatched: form.dateWatched,
-      rating: Number(form.rating),
+      rating: form.rating ? Number(form.rating) : null,
       tags: form.tags,
       metadata: {
         watchContext: form.watchContext,
@@ -129,18 +138,19 @@ export function FilmForm({ isSaving, onSubmit }: FilmFormProps) {
 
         <div className="field">
           <label htmlFor="rating">Rating</label>
-          <input
+          <select
             id="rating"
             name="rating"
-            type="number"
-            min="0"
-            max="5"
-            step="0.5"
             value={form.rating}
             onChange={handleChange('rating')}
-            placeholder="4.5"
-            required
-          />
+          >
+            <option value="">Unrated</option>
+            {RATING_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} - {option.description}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -217,9 +227,16 @@ export function FilmForm({ isSaving, onSubmit }: FilmFormProps) {
         />
       </div>
 
-      <button className="button-primary" type="submit" disabled={isSaving}>
-        {isSaving ? 'Saving...' : 'Add film'}
-      </button>
+      <div className="button-row">
+        <button className="button-primary" type="submit" disabled={isSaving}>
+          {isSaving ? 'Saving...' : submitLabel}
+        </button>
+        {onCancel ? (
+          <button className="button-secondary" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        ) : null}
+      </div>
     </form>
   )
 }

@@ -17,6 +17,8 @@ type UseFilmsState = {
   error: string | null
   lastSavedFilmId: string | null
   addFilm: (input: CreateFilmEntryInput) => Promise<boolean>
+  updateFilm: (filmId: string, input: CreateFilmEntryInput) => Promise<boolean>
+  deleteFilm: (filmId: string) => Promise<boolean>
 }
 
 const defaultMetadata = (): FilmMetadata => ({
@@ -29,11 +31,8 @@ const defaultMetadata = (): FilmMetadata => ({
 const normalizeTags = (tags: string[] = []) =>
   [...new Set(tags.map((tag) => normalizeTag(tag)).filter(Boolean))]
 
-const createFilmEntry = (input: CreateFilmEntryInput): FilmEntry => ({
-  id:
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+const buildFilmEntry = (input: CreateFilmEntryInput, id: string): FilmEntry => ({
+  id,
   title: input.title.trim(),
   releaseYear: input.releaseYear ?? null,
   dateWatched: input.dateWatched,
@@ -49,6 +48,14 @@ const createFilmEntry = (input: CreateFilmEntryInput): FilmEntry => ({
   notes: input.notes.trim(),
   isPublic: input.isPublic ?? false,
 })
+
+const createFilmEntry = (input: CreateFilmEntryInput): FilmEntry =>
+  buildFilmEntry(
+    input,
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  )
 
 export const useFilms = (
   repository: FilmRepository = localFilmRepository,
@@ -109,6 +116,48 @@ export const useFilms = (
     }
   }
 
+  const updateFilm = async (filmId: string, input: CreateFilmEntryInput) => {
+    setIsSaving(true)
+    setError(null)
+
+    const nextFilms = films
+      .map((film) => (film.id === filmId ? buildFilmEntry(input, film.id) : film))
+      .sort((left, right) => right.dateWatched.localeCompare(left.dateWatched))
+
+    try {
+      await repository.saveFilms(nextFilms)
+      setFilms(nextFilms)
+      setLastSavedFilmId(filmId)
+      return true
+    } catch {
+      setError('We could not update that film. Try again.')
+      return false
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const deleteFilm = async (filmId: string) => {
+    setIsSaving(true)
+    setError(null)
+
+    const nextFilms = films.filter((film) => film.id !== filmId)
+
+    try {
+      await repository.saveFilms(nextFilms)
+      setFilms(nextFilms)
+      if (lastSavedFilmId === filmId) {
+        setLastSavedFilmId(null)
+      }
+      return true
+    } catch {
+      setError('We could not delete that film. Try again.')
+      return false
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return {
     films,
     isLoading,
@@ -116,5 +165,7 @@ export const useFilms = (
     error,
     lastSavedFilmId,
     addFilm,
+    updateFilm,
+    deleteFilm,
   }
 }

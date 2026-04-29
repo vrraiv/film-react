@@ -1,13 +1,16 @@
+import { Link } from 'react-router-dom'
 import {
   formatOwnedMedia,
   formatWatchContext,
-  tasteTagLookup,
+  formatFilmTag,
 } from '../config/filmOptions'
 import type { FilmEntry } from '../types/film'
 
 type FilmListProps = {
   films: FilmEntry[]
   isLoading: boolean
+  onEdit: (film: FilmEntry) => void
+  onDelete: (film: FilmEntry) => void
 }
 
 const formatDate = (value: string) =>
@@ -15,7 +18,7 @@ const formatDate = (value: string) =>
     dateStyle: 'medium',
   }).format(new Date(`${value}T00:00:00`))
 
-export function FilmList({ films, isLoading }: FilmListProps) {
+export function FilmList({ films, isLoading, onEdit, onDelete }: FilmListProps) {
   if (isLoading) {
     return <p className="empty-state">Loading your film log...</p>
   }
@@ -37,20 +40,22 @@ export function FilmList({ films, isLoading }: FilmListProps) {
         <article className="film-card" key={film.id}>
           <header className="film-card__header">
             <div>
-              <h3 className="film-card__title">{film.title}</h3>
+              <h3 className="film-card__title">
+                <Link to={`/film/${film.id}`}>{film.title}</Link>
+              </h3>
               <p className="meta">
                 {film.releaseYear ? `${film.releaseYear} • ` : ''}
                 {formatDate(film.dateWatched)}
               </p>
             </div>
-            <span className="film-card__rating">{film.rating.toFixed(1)} / 5</span>
+            <span className="film-card__rating">{film.rating === null ? 'Unrated' : `${film.rating.toFixed(1)} / 5`}</span>
           </header>
 
           {film.tags.length > 0 ? (
             <div className="tag-row">
               {film.tags.map((tag) => (
                 <span className="tag-chip tag-chip--static" key={tag}>
-                  {tasteTagLookup.get(tag)?.label ?? tag}
+                  {formatFilmTag(tag)}
                 </span>
               ))}
             </div>
@@ -76,6 +81,15 @@ export function FilmList({ films, isLoading }: FilmListProps) {
             <p className="meta">{film.metadata.watchContextNote}</p>
           ) : null}
           {film.notes ? <p className="film-card__notes">{film.notes}</p> : null}
+
+          <div className="film-card__actions">
+            <button className="button-secondary" type="button" onClick={() => onEdit(film)}>
+              Edit
+            </button>
+            <button className="button-secondary button-secondary--danger" type="button" onClick={() => onDelete(film)}>
+              Delete
+            </button>
+          </div>
         </article>
       ))}
     </div>

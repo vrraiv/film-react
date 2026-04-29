@@ -1,5 +1,5 @@
 import {
-  tasteTagOptions,
+  filmTagOptions,
   watchContextOptions,
 } from '../config/filmOptions'
 import type { WatchContext } from '../types/film'
@@ -19,7 +19,7 @@ export function FilmFilters({ filters, onChange }: FilmFiltersProps) {
   return (
     <div className="filter-grid">
       <div className="field">
-        <label htmlFor="filterTag">Taste tag</label>
+        <label htmlFor="filterTag">Film tag</label>
         <select
           id="filterTag"
           value={filters.selectedTag}
@@ -28,7 +28,7 @@ export function FilmFilters({ filters, onChange }: FilmFiltersProps) {
           }
         >
           <option value="">All tags</option>
-          {tasteTagOptions.map((option) => (
+          {filmTagOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.categoryLabel}: {option.label}
             </option>

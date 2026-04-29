@@ -77,7 +77,7 @@ const toFilmEntry = (value: unknown): FilmEntry | null => {
     typeof record.id !== 'string' ||
     typeof record.title !== 'string' ||
     typeof record.dateWatched !== 'string' ||
-    typeof record.rating !== 'number' ||
+    (record.rating !== null && typeof record.rating !== 'number') ||
     !Array.isArray(record.tags) ||
     !record.tags.every((tag) => typeof tag === 'string') ||
     typeof record.notes !== 'string' ||
@@ -94,12 +94,30 @@ const toFilmEntry = (value: unknown): FilmEntry | null => {
         ? record.releaseYear
         : null,
     dateWatched: record.dateWatched,
-    rating: record.rating,
+    rating: typeof record.rating === 'number' ? record.rating : null,
     tags: record.tags,
     metadata: parseMetadata(record.metadata, record.context),
     notes: record.notes,
     isPublic: record.isPublic,
   }
+}
+
+export const parseFilmEntriesFromJson = (raw: string): FilmEntry[] => {
+  const parsed = JSON.parse(raw) as unknown
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('JSON must be an array of film entries.')
+  }
+
+  const nextFilms = parsed
+    .map((entry) => toFilmEntry(entry))
+    .filter((entry): entry is FilmEntry => entry !== null)
+
+  if (nextFilms.length !== parsed.length) {
+    throw new Error('One or more entries are invalid.')
+  }
+
+  return sortFilms(nextFilms)
 }
 
 class LocalFilmRepository implements FilmRepository {
@@ -111,17 +129,7 @@ class LocalFilmRepository implements FilmRepository {
     }
 
     try {
-      const parsed = JSON.parse(raw) as unknown
-
-      if (!Array.isArray(parsed)) {
-        return []
-      }
-
-      return sortFilms(
-        parsed
-          .map((entry) => toFilmEntry(entry))
-          .filter((entry): entry is FilmEntry => entry !== null),
-      )
+      return parseFilmEntriesFromJson(raw)
     } catch {
       return []
     }

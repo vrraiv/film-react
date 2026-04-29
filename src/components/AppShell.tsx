@@ -1,10 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
-const navItems = [
+const contentNavItems = [
   { to: '/', label: 'Home' },
   { to: '/log', label: 'Log' },
   { to: '/insights', label: 'Insights' },
 ]
+
+const settingsNavItems = [{ to: '/settings', label: 'Settings' }]
 
 export function AppShell() {
   return (
@@ -19,8 +21,9 @@ export function AppShell() {
           </p>
         </div>
 
-        <nav className="app-shell__nav" aria-label="Primary">
-          {navItems.map((item) => (
+        <div className="app-shell__nav-stack">
+          <nav className="app-shell__nav" aria-label="Content pages">
+            {contentNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -36,8 +39,29 @@ export function AppShell() {
             >
               {item.label}
             </NavLink>
-          ))}
-        </nav>
+            ))}
+          </nav>
+
+          <nav className="app-shell__nav app-shell__nav--settings" aria-label="Settings">
+            {settingsNavItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  [
+                    'app-shell__nav-link',
+                    'app-shell__nav-link--settings',
+                    isActive ? 'app-shell__nav-link--active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
       </header>
 
       <main className="app-shell__main">

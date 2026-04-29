@@ -376,6 +376,27 @@ button {
   transform: none;
 }
 
+.button-row {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.button-secondary {
+  width: fit-content;
+  padding: var(--space-7) var(--space-12);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-control);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.button-secondary--danger {
+  border-color: var(--accent-line);
+  color: var(--accent-strong);
+}
+
 .status-message {
   margin: 0;
   color: var(--success);
@@ -424,6 +445,12 @@ button {
   margin: 0;
   white-space: pre-wrap;
   color: var(--text);
+}
+
+.film-card__actions {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
 }
 
 .placeholder-card {
@@ -512,4 +539,73 @@ button {
   .filter-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.film-detail {
+  gap: var(--space-14);
+}
+
+.detail-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-10);
+}
+
+.detail-grid div {
+  padding: var(--space-9);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+}
+
+.detail-grid dt {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.detail-grid dd {
+  margin: var(--space-2) 0 0;
+}
+
+.film-card__title a:hover,
+.film-card__title a:focus-visible {
+  text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-shell__nav-stack {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.app-shell__nav--settings {
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--line);
+}
+
+.app-shell__nav-link--settings {
+  background: rgba(38, 87, 63, 0.08);
+}
+
+.settings-panel {
+  gap: var(--space-10);
+}
+
+.settings-actions {
+  align-items: center;
+}
+
+.settings-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }

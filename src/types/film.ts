@@ -19,7 +19,7 @@ export type FilmEntry = {
   title: string
   releaseYear: number | null
   dateWatched: string
-  rating: number
+  rating: number | null
   tags: string[]
   metadata: FilmMetadata
   notes: string
@@ -30,7 +30,7 @@ export type CreateFilmEntryInput = {
   title: string
   releaseYear?: number | null
   dateWatched: string
-  rating: number
+  rating: number | null
   notes: string
   tags?: string[]
   metadata?: Partial<FilmMetadata>

@@ -25,7 +25,7 @@ export function LogPage() {
         return false
       }
 
-      if (minimumRating !== null && film.rating < minimumRating) {
+      if (minimumRating !== null && (film.rating === null || film.rating < minimumRating)) {
         return false
       }
 

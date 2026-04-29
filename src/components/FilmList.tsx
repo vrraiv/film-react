@@ -8,6 +8,8 @@ import type { FilmEntry } from '../types/film'
 type FilmListProps = {
   films: FilmEntry[]
   isLoading: boolean
+  onEdit: (film: FilmEntry) => void
+  onDelete: (film: FilmEntry) => void
 }
 
 const formatDate = (value: string) =>
@@ -15,7 +17,7 @@ const formatDate = (value: string) =>
     dateStyle: 'medium',
   }).format(new Date(`${value}T00:00:00`))
 
-export function FilmList({ films, isLoading }: FilmListProps) {
+export function FilmList({ films, isLoading, onEdit, onDelete }: FilmListProps) {
   if (isLoading) {
     return <p className="empty-state">Loading your film log...</p>
   }
@@ -76,6 +78,15 @@ export function FilmList({ films, isLoading }: FilmListProps) {
             <p className="meta">{film.metadata.watchContextNote}</p>
           ) : null}
           {film.notes ? <p className="film-card__notes">{film.notes}</p> : null}
+
+          <div className="film-card__actions">
+            <button className="button-secondary" type="button" onClick={() => onEdit(film)}>
+              Edit
+            </button>
+            <button className="button-secondary button-secondary--danger" type="button" onClick={() => onDelete(film)}>
+              Delete
+            </button>
+          </div>
         </article>
       ))}
     </div>

@@ -549,3 +549,33 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.app-shell__nav-stack {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.app-shell__nav--settings {
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--line);
+}
+
+.app-shell__nav-link--settings {
+  background: rgba(38, 87, 63, 0.08);
+}
+
+.settings-panel {
+  gap: var(--space-10);
+}
+
+.settings-actions {
+  align-items: center;
+}
+
+.settings-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

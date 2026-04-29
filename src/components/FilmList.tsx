@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import {
   formatOwnedMedia,
   formatWatchContext,
@@ -39,7 +40,9 @@ export function FilmList({ films, isLoading, onEdit, onDelete }: FilmListProps) 
         <article className="film-card" key={film.id}>
           <header className="film-card__header">
             <div>
-              <h3 className="film-card__title">{film.title}</h3>
+              <h3 className="film-card__title">
+                <Link to={`/film/${film.id}`}>{film.title}</Link>
+              </h3>
               <p className="meta">
                 {film.releaseYear ? `${film.releaseYear} • ` : ''}
                 {formatDate(film.dateWatched)}

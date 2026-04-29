@@ -510,3 +510,42 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.film-detail {
+  gap: var(--space-14);
+}
+
+.detail-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-10);
+}
+
+.detail-grid div {
+  padding: var(--space-9);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+}
+
+.detail-grid dt {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.detail-grid dd {
+  margin: var(--space-2) 0 0;
+}
+
+.film-card__title a:hover,
+.film-card__title a:focus-visible {
+  text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

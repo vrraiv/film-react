@@ -23,6 +23,8 @@ const watchContexts = new Set([
 const ownedMediaFormats = new Set(['4k-uhd', 'blu-ray', 'dvd', 'vhs'])
 
 const defaultMetadata = (): FilmMetadata => ({
+  dateLogged: '',
+  firstWatch: null,
   watchContext: '',
   watchContextNote: '',
   ownedFormats: [],
@@ -47,6 +49,8 @@ const parseMetadata = (value: unknown, legacyContext?: unknown): FilmMetadata =>
   const record = value as Record<string, unknown>
 
   return {
+    dateLogged: typeof record.dateLogged === 'string' ? record.dateLogged : '',
+    firstWatch: typeof record.firstWatch === 'boolean' ? record.firstWatch : null,
     watchContext: isWatchContext(record.watchContext) ? record.watchContext : '',
     watchContextNote:
       typeof record.watchContextNote === 'string'

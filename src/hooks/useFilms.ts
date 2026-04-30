@@ -22,6 +22,8 @@ type UseFilmsState = {
 }
 
 const defaultMetadata = (): FilmMetadata => ({
+  dateLogged: '',
+  firstWatch: null,
   watchContext: '',
   watchContextNote: '',
   ownedFormats: [],
@@ -41,6 +43,8 @@ const buildFilmEntry = (input: CreateFilmEntryInput, id: string): FilmEntry => (
   metadata: {
     ...defaultMetadata(),
     ...input.metadata,
+    dateLogged: input.metadata?.dateLogged ?? new Date().toISOString(),
+    firstWatch: input.metadata?.firstWatch ?? null,
     watchContextNote: input.metadata?.watchContextNote?.trim() ?? '',
     ownedFormats: [...new Set(input.metadata?.ownedFormats ?? [])],
     onWishlist: input.metadata?.onWishlist ?? false,
@@ -121,7 +125,20 @@ export const useFilms = (
     setError(null)
 
     const nextFilms = films
-      .map((film) => (film.id === filmId ? buildFilmEntry(input, film.id) : film))
+      .map((film) => (
+        film.id === filmId
+          ? buildFilmEntry(
+              {
+                ...input,
+                metadata: {
+                  ...input.metadata,
+                  dateLogged: film.metadata.dateLogged,
+                },
+              },
+              film.id,
+            )
+          : film
+      ))
       .sort((left, right) => right.dateWatched.localeCompare(left.dateWatched))
 
     try {

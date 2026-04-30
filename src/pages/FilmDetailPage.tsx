@@ -59,6 +59,10 @@ export function FilmDetailPage() {
             <dd>{formatDate(film.dateWatched)}</dd>
           </div>
           <div>
+            <dt>Date logged</dt>
+            <dd>{film.metadata.dateLogged ? formatDate(film.metadata.dateLogged.slice(0, 10)) : 'Not set'}</dd>
+          </div>
+          <div>
             <dt>Rating</dt>
             <dd>{film.rating === null ? 'Unrated' : `${film.rating.toFixed(1)} / 5`}</dd>
           </div>
@@ -69,6 +73,12 @@ export function FilmDetailPage() {
           <div>
             <dt>Watch context</dt>
             <dd>{formatWatchContext(film.metadata.watchContext)}</dd>
+          </div>
+          <div>
+            <dt>First watch</dt>
+            <dd>
+              {film.metadata.firstWatch === null ? 'Not set' : film.metadata.firstWatch ? 'Yes' : 'No'}
+            </dd>
           </div>
           <div>
             <dt>Watch context note</dt>

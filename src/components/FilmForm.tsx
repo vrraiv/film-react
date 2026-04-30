@@ -27,6 +27,7 @@ type FilmFormState = {
   rating: string
   tags: string[]
   watchContext: WatchContext | ''
+  firstWatch: '' | 'yes' | 'no'
   watchContextNote: string
   ownedFormats: OwnedMediaFormat[]
   onWishlist: boolean
@@ -40,6 +41,12 @@ const initialState = (film?: FilmEntry): FilmFormState => ({
   rating: film?.rating === null || film?.rating === undefined ? '' : String(film.rating),
   tags: film?.tags ?? [],
   watchContext: film?.metadata.watchContext ?? '',
+  firstWatch:
+    film?.metadata.firstWatch === null || film?.metadata.firstWatch === undefined
+      ? ''
+      : film.metadata.firstWatch
+        ? 'yes'
+        : 'no',
   watchContextNote: film?.metadata.watchContextNote ?? '',
   ownedFormats: film?.metadata.ownedFormats ?? [],
   onWishlist: film?.metadata.onWishlist ?? false,
@@ -80,6 +87,8 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
       tags: form.tags,
       metadata: {
         watchContext: form.watchContext,
+        firstWatch:
+          form.firstWatch === '' ? null : form.firstWatch === 'yes',
         watchContextNote: form.watchContextNote,
         ownedFormats: form.ownedFormats,
         onWishlist: form.onWishlist,
@@ -173,6 +182,20 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
               {option.label}
             </option>
           ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="firstWatch">First watch?</label>
+        <select
+          id="firstWatch"
+          name="firstWatch"
+          value={form.firstWatch}
+          onChange={handleChange('firstWatch')}
+        >
+          <option value="">Not set</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
         </select>
       </div>
 

@@ -8,6 +8,8 @@ export type WatchContext =
 export type OwnedMediaFormat = '4k-uhd' | 'blu-ray' | 'dvd' | 'vhs'
 
 export type FilmMetadata = {
+  dateLogged: string
+  firstWatch: boolean | null
   watchContext: WatchContext | ''
   watchContextNote: string
   ownedFormats: OwnedMediaFormat[]

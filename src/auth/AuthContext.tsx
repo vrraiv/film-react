@@ -26,11 +26,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!supabase) {
-      setIsLoading(false)
-      return
-    }
-
     let isMounted = true
 
     const loadSession = async () => {
@@ -68,18 +63,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isLoading,
       isConfigured: isSupabaseConfigured,
       async signIn(email, password) {
-        if (!supabase) {
-          return 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
-        }
-
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         return error?.message ?? null
       },
       async signOut() {
-        if (!supabase) {
-          return
-        }
-
         const { error } = await supabase.auth.signOut()
         if (error) {
           console.error('[supabase] Failed to sign out:', error.message)

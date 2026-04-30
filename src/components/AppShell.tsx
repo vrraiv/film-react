@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import { appConfig } from '../config/env'
 
 const contentNavItems = [
@@ -11,6 +12,8 @@ const contentNavItems = [
 const settingsNavItems = [{ to: '/settings', label: 'Settings' }]
 
 export function AppShell() {
+  const { user, signOut } = useAuth()
+
   return (
     <div className="app-shell">
       <header className="app-shell__header">
@@ -44,6 +47,12 @@ export function AppShell() {
             ))}
           </nav>
 
+
+          {user ? (
+            <button className="button-secondary" type="button" onClick={() => void signOut()}>
+              Sign out
+            </button>
+          ) : null}
           <nav className="app-shell__nav app-shell__nav--settings" aria-label="Settings">
             {settingsNavItems.map((item) => (
               <NavLink

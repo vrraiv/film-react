@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { appConfig } from '../config/env'
 
 const contentNavItems = [
   { to: '/', label: 'Home' },
@@ -14,7 +15,7 @@ export function AppShell() {
     <div className="app-shell">
       <header className="app-shell__header">
         <div className="app-shell__brand">
-          <span className="eyebrow">Film tracker</span>
+          <span className="eyebrow">{appConfig.appTitle}</span>
           <h1 className="app-shell__title">A private cinema notebook for your actual taste.</h1>
           <p className="app-shell__subtitle">
             Start local, log quickly, and keep the architecture simple enough to

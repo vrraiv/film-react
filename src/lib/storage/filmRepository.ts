@@ -4,13 +4,14 @@ import type {
   OwnedMediaFormat,
   WatchContext,
 } from '../../types/film'
+import { appConfig } from '../../config/env'
 
 export interface FilmRepository {
   loadFilms: () => Promise<FilmEntry[]>
   saveFilms: (films: FilmEntry[]) => Promise<void>
 }
 
-const STORAGE_KEY = 'film-react.films'
+const STORAGE_KEY = `${appConfig.storageKeyPrefix}.films`
 
 const watchContexts = new Set([
   'theatre',

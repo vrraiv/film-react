@@ -31,6 +31,7 @@ type FilmFormState = {
   watchContextNote: string
   ownedFormats: OwnedMediaFormat[]
   onWishlist: boolean
+  isPublic: boolean
   notes: string
 }
 
@@ -50,6 +51,7 @@ const initialState = (film?: FilmEntry): FilmFormState => ({
   watchContextNote: film?.metadata.watchContextNote ?? '',
   ownedFormats: film?.metadata.ownedFormats ?? [],
   onWishlist: film?.metadata.onWishlist ?? false,
+  isPublic: film?.isPublic ?? false,
   notes: film?.notes ?? '',
 })
 
@@ -94,6 +96,7 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
         onWishlist: form.onWishlist,
       },
       notes: form.notes,
+      isPublic: form.isPublic,
     })
 
     if (saved) {
@@ -237,6 +240,23 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
             <span>Keep on wishlist</span>
           </label>
         </div>
+      </div>
+
+
+      <div className="field">
+        <label className="check-pill check-pill--accent">
+          <input
+            type="checkbox"
+            checked={form.isPublic}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                isPublic: event.target.checked,
+              }))
+            }
+          />
+          <span>Show in public preview</span>
+        </label>
       </div>
 
       <div className="field">

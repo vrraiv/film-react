@@ -12,7 +12,10 @@ const ratingBuckets = [...RATING_OPTIONS]
 
 export function InsightsPage() {
   const { user, loading: authLoading } = useAuth()
-  const { films: privateFilms, isLoading: isLoadingPrivateFilms } = useFilms()
+  const { films: privateFilms, isLoading: isLoadingPrivateFilms } = useFilms(
+    undefined,
+    { enabled: Boolean(user) },
+  )
   const [publicFilms, setPublicFilms] = useState<FilmEntry[]>([])
   const [isLoadingPublicFilms, setIsLoadingPublicFilms] = useState(false)
   const [publicError, setPublicError] = useState<string | null>(null)
@@ -105,9 +108,9 @@ export function InsightsPage() {
     <section className="page">
       <header className="page__hero">
         <span className="eyebrow">Insights</span>
-        <h2 className="page__title">See how your ratings and tags stack up.</h2>
+        <h2 className="page__title">Insights from recent watches.</h2>
         <p className="page__copy">
-          See patterns in shared ratings and tags.
+          A quick look at what shows up most often in the shared film diary.
         </p>
       </header>
 
@@ -125,7 +128,7 @@ export function InsightsPage() {
             {isLoading
               ? 'Loading…'
               : insights.averageRating === null
-                ? 'No ratings yet'
+                ? 'More insights will appear as more films are rated.'
                 : `${insights.averageRating.toFixed(1)} / 5`}
           </p>
         </section>
@@ -162,7 +165,7 @@ export function InsightsPage() {
               </div>
             </>
           ) : (
-            <p className="page__copy">No ratings yet.</p>
+            <p className="page__copy">More insights will appear as more films are rated.</p>
           )}
         </section>
 
@@ -179,7 +182,7 @@ export function InsightsPage() {
               ))}
             </ol>
           ) : (
-            <p className="page__copy">Add tagged ratings to see tag insights.</p>
+            <p className="page__copy">More tag patterns will appear as more films are logged.</p>
           )}
         </section>
       </div>

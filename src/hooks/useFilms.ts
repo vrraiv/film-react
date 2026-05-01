@@ -20,6 +20,10 @@ type UseFilmsState = {
   deleteFilm: (filmId: string) => Promise<boolean>
 }
 
+type UseFilmsOptions = {
+  enabled?: boolean
+}
+
 const missingAuthServiceError = 'You must sign in before managing your film log.'
 
 const defaultMetadata = (): FilmMetadata => ({
@@ -62,11 +66,15 @@ const createFilmEntry = (input: CreateFilmEntryInput): FilmEntry =>
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
   )
 
-export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
+export const useFilms = (
+  serviceOverride?: FilmLogService,
+  options: UseFilmsOptions = {},
+): UseFilmsState => {
   const { user, loading: authLoading } = useAuth()
+  const isEnabled = options.enabled ?? true
   const service = useMemo(
-    () => serviceOverride ?? (user ? createFilmLogService(user.id) : null),
-    [serviceOverride, user?.id],
+    () => (isEnabled ? serviceOverride ?? (user ? createFilmLogService(user.id) : null) : null),
+    [isEnabled, serviceOverride, user?.id],
   )
   const [films, setFilms] = useState<FilmEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -77,8 +85,8 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
   const reloadFilms = async () => {
     if (!service) {
       setFilms([])
-      setError(authLoading ? null : missingAuthServiceError)
-      setIsLoading(authLoading)
+      setError(authLoading || !isEnabled ? null : missingAuthServiceError)
+      setIsLoading(authLoading && isEnabled)
       return
     }
 
@@ -98,9 +106,9 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
   useEffect(() => {
     if (!service) {
       setFilms([])
-      setIsLoading(true)
-      setError(authLoading ? null : missingAuthServiceError)
-      if (!authLoading) {
+      setIsLoading(authLoading && isEnabled)
+      setError(authLoading || !isEnabled ? null : missingAuthServiceError)
+      if (!authLoading || !isEnabled) {
         setIsLoading(false)
       }
       return
@@ -135,7 +143,7 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
     return () => {
       isMounted = false
     }
-  }, [authLoading, service])
+  }, [authLoading, isEnabled, service])
 
   const addFilm = async (input: CreateFilmEntryInput) => {
     if (!service) {

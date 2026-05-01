@@ -4,9 +4,15 @@ import { useAuth } from '../../auth/useAuth'
 
 type ProtectedRouteProps = {
   children: ReactNode
+  redirectTo?: string
+  preserveDestination?: boolean
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  redirectTo = '/',
+  preserveDestination = false,
+}: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const location = useLocation()
 
@@ -15,7 +21,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to={redirectTo}
+        replace
+        state={preserveDestination ? { from: location.pathname } : undefined}
+      />
+    )
   }
 
   return <>{children}</>

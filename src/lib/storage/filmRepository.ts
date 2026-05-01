@@ -6,11 +6,6 @@ import type {
 } from '../../types/film'
 import { appConfig } from '../../config/env'
 
-export interface FilmRepository {
-  loadFilms: () => Promise<FilmEntry[]>
-  saveFilms: (films: FilmEntry[]) => Promise<void>
-}
-
 const STORAGE_KEY = `${appConfig.storageKeyPrefix}.films`
 
 const watchContexts = new Set([
@@ -125,24 +120,16 @@ export const parseFilmEntriesFromJson = (raw: string): FilmEntry[] => {
   return sortFilms(nextFilms)
 }
 
-class LocalFilmRepository implements FilmRepository {
-  async loadFilms() {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+export const loadLegacyLocalFilmEntries = async (): Promise<FilmEntry[]> => {
+  const raw = window.localStorage.getItem(STORAGE_KEY)
 
-    if (!raw) {
-      return []
-    }
-
-    try {
-      return parseFilmEntriesFromJson(raw)
-    } catch {
-      return []
-    }
+  if (!raw) {
+    return []
   }
 
-  async saveFilms(films: FilmEntry[]) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sortFilms(films)))
+  try {
+    return parseFilmEntriesFromJson(raw)
+  } catch {
+    return []
   }
 }
-
-export const localFilmRepository: FilmRepository = new LocalFilmRepository()

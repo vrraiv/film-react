@@ -20,6 +20,8 @@ type UseFilmsState = {
   deleteFilm: (filmId: string) => Promise<boolean>
 }
 
+const missingAuthServiceError = 'You must sign in before managing your film log.'
+
 const defaultMetadata = (): FilmMetadata => ({
   dateLogged: '',
   firstWatch: null,
@@ -63,7 +65,7 @@ const createFilmEntry = (input: CreateFilmEntryInput): FilmEntry =>
 export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
   const { user, loading: authLoading } = useAuth()
   const service = useMemo(
-    () => serviceOverride ?? createFilmLogService(user?.id ?? null),
+    () => serviceOverride ?? (user ? createFilmLogService(user.id) : null),
     [serviceOverride, user?.id],
   )
   const [films, setFilms] = useState<FilmEntry[]>([])
@@ -73,6 +75,13 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
   const [lastSavedFilmId, setLastSavedFilmId] = useState<string | null>(null)
 
   const reloadFilms = async () => {
+    if (!service) {
+      setFilms([])
+      setError(authLoading ? null : missingAuthServiceError)
+      setIsLoading(authLoading)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -87,8 +96,13 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
   }
 
   useEffect(() => {
-    if (authLoading && !serviceOverride) {
+    if (!service) {
+      setFilms([])
       setIsLoading(true)
+      setError(authLoading ? null : missingAuthServiceError)
+      if (!authLoading) {
+        setIsLoading(false)
+      }
       return
     }
 
@@ -121,9 +135,14 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
     return () => {
       isMounted = false
     }
-  }, [authLoading, service, serviceOverride])
+  }, [authLoading, service])
 
   const addFilm = async (input: CreateFilmEntryInput) => {
+    if (!service) {
+      setError(missingAuthServiceError)
+      return false
+    }
+
     setIsSaving(true)
     setError(null)
 
@@ -147,6 +166,11 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
   }
 
   const updateFilm = async (filmId: string, input: CreateFilmEntryInput) => {
+    if (!service) {
+      setError(missingAuthServiceError)
+      return false
+    }
+
     setIsSaving(true)
     setError(null)
 
@@ -187,6 +211,11 @@ export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
   }
 
   const deleteFilm = async (filmId: string) => {
+    if (!service) {
+      setError(missingAuthServiceError)
+      return false
+    }
+
     setIsSaving(true)
     setError(null)
 

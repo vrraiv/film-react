@@ -1,8 +1,11 @@
 import { useMemo } from 'react'
 import { formatFilmTag } from '../config/filmOptions'
+import { RATING_OPTIONS } from '../config/filmTags'
 import { useFilms } from '../hooks/useFilms'
 
-const ratingBuckets = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+const ratingBuckets = [...RATING_OPTIONS]
+  .map((rating) => rating.value)
+  .sort((left, right) => left - right)
 
 export function InsightsPage() {
   const { films, isLoading } = useFilms()
@@ -17,6 +20,10 @@ export function InsightsPage() {
       rating,
       count: ratedFilms.filter((film) => film.rating === rating).length,
     }))
+    const maxRatingCount = Math.max(
+      ...ratingDistribution.map((bucket) => bucket.count),
+      0,
+    )
 
     const tagTotals = new Map<string, { total: number; count: number }>()
 
@@ -43,6 +50,7 @@ export function InsightsPage() {
       totalFilms: films.length,
       averageRating,
       ratingDistribution,
+      maxRatingCount,
       topTagsByAverageRating,
     }
   }, [films])
@@ -71,7 +79,7 @@ export function InsightsPage() {
               ? 'Loading…'
               : insights.averageRating === null
                 ? 'No ratings yet'
-                : `${insights.averageRating.toFixed(1)} / 10`}
+                : `${insights.averageRating.toFixed(1)} / 5`}
           </p>
         </section>
 
@@ -80,13 +88,32 @@ export function InsightsPage() {
           {isLoading ? (
             <p className="page__copy">Loading…</p>
           ) : insights.ratingDistribution.some((bucket) => bucket.count > 0) ? (
-            <ul>
-              {insights.ratingDistribution.map((bucket) => (
-                <li key={bucket.rating}>
-                  {bucket.rating}/10: {bucket.count}
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="insight-list">
+                {insights.ratingDistribution.map((bucket) => (
+                  <li key={bucket.rating}>
+                    {bucket.rating.toFixed(1)} / 5: {bucket.count}
+                  </li>
+                ))}
+              </ul>
+              <div className="rating-histogram" aria-label="Rating histogram">
+                {insights.ratingDistribution.map((bucket) => (
+                  <div className="rating-histogram__bar" key={bucket.rating}>
+                    <span
+                      className="rating-histogram__fill"
+                      style={{
+                        height: insights.maxRatingCount
+                          ? `${Math.max((bucket.count / insights.maxRatingCount) * 100, bucket.count > 0 ? 12 : 0)}%`
+                          : '0%',
+                      }}
+                    />
+                    <span className="rating-histogram__label">
+                      {bucket.rating.toFixed(1)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
             <p className="page__copy">No ratings yet.</p>
           )}

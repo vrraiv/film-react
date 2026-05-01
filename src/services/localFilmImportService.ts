@@ -1,5 +1,5 @@
 import { appConfig } from '../config/env'
-import { localFilmRepository } from '../lib/storage/filmRepository'
+import { loadLegacyLocalFilmEntries } from '../lib/storage/filmRepository'
 import type { FilmEntry } from '../types/film'
 import type { FilmLogService } from './filmLogService'
 
@@ -29,7 +29,7 @@ const getEntrySignature = (entry: FilmEntry) =>
 export const getLocalFilmImportStatus = async (
   userId: string,
 ): Promise<LocalFilmImportStatus> => ({
-  entries: await localFilmRepository.loadFilms(),
+  entries: await loadLegacyLocalFilmEntries(),
   isImported: window.localStorage.getItem(importFlagKey(userId)) === 'true',
 })
 
@@ -41,7 +41,7 @@ export const importLocalFilmsToService = async (
   userId: string,
   service: FilmLogService,
 ): Promise<LocalFilmImportResult> => {
-  const localEntries = await localFilmRepository.loadFilms()
+  const localEntries = await loadLegacyLocalFilmEntries()
   const remoteEntries = await service.fetchEntries()
   const remoteIds = new Set(remoteEntries.map((entry) => entry.id))
   const remoteSignatures = new Set(remoteEntries.map(getEntrySignature))

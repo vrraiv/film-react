@@ -1,4 +1,3 @@
-import { localFilmRepository } from '../lib/storage/filmRepository'
 import { mapFilmEntryToRow, mapRowToFilmEntry, type FilmEntryRow } from '../lib/supabase/filmMappers'
 import { supabase } from '../lib/supabaseClient'
 import type { FilmEntry } from '../types/film'
@@ -23,9 +22,6 @@ const filmEntryColumns = `
   metadata
 `
 
-const sortEntries = (entries: FilmEntry[]) =>
-  [...entries].sort((left, right) => right.dateWatched.localeCompare(left.dateWatched))
-
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const createEntryId = () => {
@@ -38,33 +34,6 @@ const createEntryId = () => {
 
 const ensureSupabaseEntryId = (entry: FilmEntry): FilmEntry =>
   uuidPattern.test(entry.id) ? entry : { ...entry, id: createEntryId() }
-
-class LocalFilmLogService implements FilmLogService {
-  async fetchEntries() {
-    return localFilmRepository.loadFilms()
-  }
-
-  async createEntry(entry: FilmEntry) {
-    const entries = await localFilmRepository.loadFilms()
-    await localFilmRepository.saveFilms(sortEntries([entry, ...entries]))
-    return entry
-  }
-
-  async updateEntry(entry: FilmEntry) {
-    const entries = await localFilmRepository.loadFilms()
-    const nextEntries = entries.map((currentEntry) =>
-      currentEntry.id === entry.id ? entry : currentEntry,
-    )
-
-    await localFilmRepository.saveFilms(sortEntries(nextEntries))
-    return entry
-  }
-
-  async deleteEntry(entryId: string) {
-    const entries = await localFilmRepository.loadFilms()
-    await localFilmRepository.saveFilms(entries.filter((entry) => entry.id !== entryId))
-  }
-}
 
 class SupabaseFilmLogService implements FilmLogService {
   private readonly userId: string
@@ -134,10 +103,8 @@ class SupabaseFilmLogService implements FilmLogService {
   }
 }
 
-export const localFilmLogService: FilmLogService = new LocalFilmLogService()
-
 export const createSupabaseFilmLogService = (userId: string): FilmLogService =>
   new SupabaseFilmLogService(userId)
 
-export const createFilmLogService = (userId: string | null): FilmLogService =>
-  userId ? createSupabaseFilmLogService(userId) : localFilmLogService
+export const createFilmLogService = (userId: string): FilmLogService =>
+  createSupabaseFilmLogService(userId)

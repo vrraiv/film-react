@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../auth/useAuth'
 import { normalizeTag } from '../config/filmOptions'
-import {
-  localFilmRepository,
-  type FilmRepository,
-} from '../lib/storage/filmRepository'
+import { createFilmLogService, type FilmLogService } from '../services/filmLogService'
 import type {
   CreateFilmEntryInput,
   FilmEntry,
@@ -16,6 +14,7 @@ type UseFilmsState = {
   isSaving: boolean
   error: string | null
   lastSavedFilmId: string | null
+  reloadFilms: () => Promise<void>
   addFilm: (input: CreateFilmEntryInput) => Promise<boolean>
   updateFilm: (filmId: string, input: CreateFilmEntryInput) => Promise<boolean>
   deleteFilm: (filmId: string) => Promise<boolean>
@@ -61,26 +60,52 @@ const createFilmEntry = (input: CreateFilmEntryInput): FilmEntry =>
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
   )
 
-export const useFilms = (
-  repository: FilmRepository = localFilmRepository,
-): UseFilmsState => {
+export const useFilms = (serviceOverride?: FilmLogService): UseFilmsState => {
+  const { user, loading: authLoading } = useAuth()
+  const service = useMemo(
+    () => serviceOverride ?? createFilmLogService(user?.id ?? null),
+    [serviceOverride, user?.id],
+  )
   const [films, setFilms] = useState<FilmEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastSavedFilmId, setLastSavedFilmId] = useState<string | null>(null)
 
+  const reloadFilms = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      setFilms(await service.fetchEntries())
+    } catch (loadError) {
+      console.error(loadError)
+      setError('We could not load your film log.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
+    if (authLoading && !serviceOverride) {
+      setIsLoading(true)
+      return
+    }
+
     let isMounted = true
 
     const load = async () => {
+      setIsLoading(true)
+      setError(null)
+
       try {
-        const nextFilms = await repository.loadFilms()
+        const nextFilms = await service.fetchEntries()
 
         if (isMounted) {
           setFilms(nextFilms)
         }
-      } catch {
+      } catch (loadError) {
+        console.error(loadError)
         if (isMounted) {
           setError('We could not load your film log.')
         }
@@ -96,23 +121,24 @@ export const useFilms = (
     return () => {
       isMounted = false
     }
-  }, [repository])
+  }, [authLoading, service, serviceOverride])
 
   const addFilm = async (input: CreateFilmEntryInput) => {
     setIsSaving(true)
     setError(null)
 
     const nextEntry = createFilmEntry(input)
-    const nextFilms = [nextEntry, ...films].sort((left, right) =>
-      right.dateWatched.localeCompare(left.dateWatched),
-    )
 
     try {
-      await repository.saveFilms(nextFilms)
+      const savedEntry = await service.createEntry(nextEntry)
+      const nextFilms = [savedEntry, ...films].sort((left, right) =>
+        right.dateWatched.localeCompare(left.dateWatched),
+      )
       setFilms(nextFilms)
-      setLastSavedFilmId(nextEntry.id)
+      setLastSavedFilmId(savedEntry.id)
       return true
-    } catch {
+    } catch (saveError) {
+      console.error(saveError)
       setError('We could not save that film. Try again.')
       return false
     } finally {
@@ -124,29 +150,35 @@ export const useFilms = (
     setIsSaving(true)
     setError(null)
 
-    const nextFilms = films
-      .map((film) => (
-        film.id === filmId
-          ? buildFilmEntry(
-              {
-                ...input,
-                metadata: {
-                  ...input.metadata,
-                  dateLogged: film.metadata.dateLogged,
-                },
-              },
-              film.id,
-            )
-          : film
-      ))
-      .sort((left, right) => right.dateWatched.localeCompare(left.dateWatched))
+    const existingFilm = films.find((film) => film.id === filmId)
+
+    if (!existingFilm) {
+      setError('We could not find that film.')
+      setIsSaving(false)
+      return false
+    }
+
+    const nextEntry = buildFilmEntry(
+      {
+        ...input,
+        metadata: {
+          ...input.metadata,
+          dateLogged: existingFilm.metadata.dateLogged,
+        },
+      },
+      existingFilm.id,
+    )
 
     try {
-      await repository.saveFilms(nextFilms)
+      const savedEntry = await service.updateEntry(nextEntry)
+      const nextFilms = films
+        .map((film) => (film.id === filmId ? savedEntry : film))
+        .sort((left, right) => right.dateWatched.localeCompare(left.dateWatched))
       setFilms(nextFilms)
       setLastSavedFilmId(filmId)
       return true
-    } catch {
+    } catch (saveError) {
+      console.error(saveError)
       setError('We could not update that film. Try again.')
       return false
     } finally {
@@ -158,16 +190,16 @@ export const useFilms = (
     setIsSaving(true)
     setError(null)
 
-    const nextFilms = films.filter((film) => film.id !== filmId)
-
     try {
-      await repository.saveFilms(nextFilms)
+      await service.deleteEntry(filmId)
+      const nextFilms = films.filter((film) => film.id !== filmId)
       setFilms(nextFilms)
       if (lastSavedFilmId === filmId) {
         setLastSavedFilmId(null)
       }
       return true
-    } catch {
+    } catch (saveError) {
+      console.error(saveError)
       setError('We could not delete that film. Try again.')
       return false
     } finally {
@@ -181,6 +213,7 @@ export const useFilms = (
     isSaving,
     error,
     lastSavedFilmId,
+    reloadFilms,
     addFilm,
     updateFilm,
     deleteFilm,

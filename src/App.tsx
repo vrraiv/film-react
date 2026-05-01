@@ -9,12 +9,13 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { PublicPreviewPage } from './pages/PublicPreviewPage'
-import { SignInPage } from './pages/auth/SignInPage'
+import { LoginPage } from './pages/auth/LoginPage'
 
 function App() {
   return (
     <Routes>
-      <Route path="sign-in" element={<SignInPage />} />
+      <Route path="login" element={<LoginPage />} />
+      <Route path="sign-in" element={<Navigate to="/login" replace />} />
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
         <Route

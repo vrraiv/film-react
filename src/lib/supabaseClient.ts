@@ -9,8 +9,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-export const isSupabaseConfigured = true
-
-export { supabase }
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+  },
+})

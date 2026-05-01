@@ -404,6 +404,19 @@ button {
   font-weight: 700;
 }
 
+.status-message--error {
+  color: var(--accent-strong);
+}
+
+.auth-panel {
+  max-width: 34rem;
+}
+
+.auth-actions {
+  position: relative;
+  z-index: 1;
+}
+
 .film-list,
 .tag-input,
 .tag-input__suggestions,

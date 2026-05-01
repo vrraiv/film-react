@@ -17,7 +17,15 @@ function App() {
       <Route path="login" element={<LoginPage />} />
       <Route path="sign-in" element={<Navigate to="/login" replace />} />
       <Route element={<AppShell />}>
-        <Route index element={<HomePage />} />
+        <Route index element={<PublicPreviewPage />} />
+        <Route
+          path="home"
+          element={(
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          )}
+        />
         <Route
           path="log"
           element={(
@@ -27,11 +35,17 @@ function App() {
           )}
         />
         <Route path="insights" element={<InsightsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route
+          path="settings"
+          element={(
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          )}
+        />
         <Route path="preview-public" element={<PublicPreviewPage />} />
         <Route path="v/:userId" element={<PublicProfilePage />} />
         <Route path="film/:filmId" element={<FilmDetailPage />} />
-        <Route path="home" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

@@ -99,3 +99,18 @@ export const fetchPublicFilmProfile = async (
     entries: entries.map(mapPublicRowToFilmEntry),
   }
 }
+
+export const fetchPublicFilmEntries = async (): Promise<FilmEntry[]> => {
+  const { data, error } = await supabase
+    .from('film_entries')
+    .select(publicFilmEntryColumns)
+    .eq('is_public', true)
+    .order('date_watched', { ascending: false })
+    .returns<PublicFilmEntryRow[]>()
+
+  if (error) {
+    throw new Error(`Could not load public film entries: ${error.message}`)
+  }
+
+  return data.map(mapPublicRowToFilmEntry)
+}

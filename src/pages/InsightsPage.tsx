@@ -1,14 +1,60 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../auth/useAuth'
 import { formatFilmTag } from '../config/filmOptions'
 import { RATING_OPTIONS } from '../config/filmTags'
 import { useFilms } from '../hooks/useFilms'
+import { fetchPublicFilmEntries } from '../services/publicFilmProfileService'
+import type { FilmEntry } from '../types/film'
 
 const ratingBuckets = [...RATING_OPTIONS]
   .map((rating) => rating.value)
   .sort((left, right) => left - right)
 
 export function InsightsPage() {
-  const { films, isLoading } = useFilms()
+  const { user, loading: authLoading } = useAuth()
+  const { films: privateFilms, isLoading: isLoadingPrivateFilms } = useFilms()
+  const [publicFilms, setPublicFilms] = useState<FilmEntry[]>([])
+  const [isLoadingPublicFilms, setIsLoadingPublicFilms] = useState(false)
+  const [publicError, setPublicError] = useState<string | null>(null)
+  const films = user ? privateFilms : publicFilms
+  const isLoading = user ? isLoadingPrivateFilms : authLoading || isLoadingPublicFilms
+
+  useEffect(() => {
+    if (authLoading || user) {
+      return
+    }
+
+    let isMounted = true
+
+    const loadPublicFilms = async () => {
+      setIsLoadingPublicFilms(true)
+      setPublicError(null)
+
+      try {
+        const nextFilms = await fetchPublicFilmEntries()
+
+        if (isMounted) {
+          setPublicFilms(nextFilms)
+        }
+      } catch (loadError) {
+        console.error(loadError)
+
+        if (isMounted) {
+          setPublicError('We could not load public insights right now.')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPublicFilms(false)
+        }
+      }
+    }
+
+    void loadPublicFilms()
+
+    return () => {
+      isMounted = false
+    }
+  }, [authLoading, user])
 
   const insights = useMemo(() => {
     const ratedFilms = films.filter((film) => film.rating !== null)
@@ -61,10 +107,11 @@ export function InsightsPage() {
         <span className="eyebrow">Insights</span>
         <h2 className="page__title">See how your ratings and tags stack up.</h2>
         <p className="page__copy">
-          These insights come from your local film log and stay useful even when you
-          are just getting started.
+          See patterns in shared ratings and tags.
         </p>
       </header>
+
+      {publicError ? <p className="empty-state">{publicError}</p> : null}
 
       <div className="shell-grid">
         <section className="shell-card">

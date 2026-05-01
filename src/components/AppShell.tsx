@@ -2,27 +2,32 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { appConfig } from '../config/env'
 
-const contentNavItems = [
-  { to: '/', label: 'Home' },
+const publicNavItems = [
+  { to: '/', label: 'Film Diary' },
+  { to: '/insights', label: 'Insights' },
+]
+
+const authenticatedNavItems = [
+  { to: '/home', label: 'Home' },
   { to: '/log', label: 'Log' },
   { to: '/insights', label: 'Insights' },
-  { to: '/preview-public', label: 'Public preview' },
+  { to: '/', label: 'Film Diary' },
 ]
 
 const settingsNavItems = [{ to: '/settings', label: 'Settings' }]
 
 export function AppShell() {
   const { user, signOut } = useAuth()
+  const contentNavItems = user ? authenticatedNavItems : publicNavItems
 
   return (
     <div className="app-shell">
       <header className="app-shell__header">
         <div className="app-shell__brand">
           <span className="eyebrow">{appConfig.appTitle}</span>
-          <h1 className="app-shell__title">A private cinema notebook for your actual taste.</h1>
+          <h1 className="app-shell__title">A film diary for recent watches and good recommendations.</h1>
           <p className="app-shell__subtitle">
-            Start local, log quickly, and keep the architecture simple enough to
-            move to a hosted backend later.
+            Browse ratings and notes, then sign in when it is time to update the log.
           </p>
         </div>
 
@@ -58,25 +63,27 @@ export function AppShell() {
               </NavLink>
             )}
           </div>
-          <nav className="app-shell__nav app-shell__nav--settings" aria-label="Settings">
-            {settingsNavItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  [
-                    'app-shell__nav-link',
-                    'app-shell__nav-link--settings',
-                    isActive ? 'app-shell__nav-link--active' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          {user ? (
+            <nav className="app-shell__nav app-shell__nav--settings" aria-label="Settings">
+              {settingsNavItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    [
+                      'app-shell__nav-link',
+                      'app-shell__nav-link--settings',
+                      isActive ? 'app-shell__nav-link--active' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          ) : null}
         </div>
       </header>
 

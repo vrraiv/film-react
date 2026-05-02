@@ -1,23 +1,23 @@
 const TMDB_API_BASE = 'https://api.themoviedb.org/3'
 const MAX_RESULTS = 8
 
-const response = (statusCode: number, body: unknown) => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-})
+const jsonResponse = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
 
 export default async (request: Request) => {
   const bearer = process.env.TMDB_READ_ACCESS_TOKEN
   if (!bearer) {
-    return response(500, { error: 'TMDB_READ_ACCESS_TOKEN is not configured.' })
+    return jsonResponse(500, { error: 'TMDB_READ_ACCESS_TOKEN is not configured.' })
   }
 
   const url = new URL(request.url)
   const query = url.searchParams.get('query')?.trim()
 
   if (!query) {
-    return response(400, { error: 'query is required' })
+    return jsonResponse(400, { error: 'query is required' })
   }
 
   const tmdbUrl = new URL(`${TMDB_API_BASE}/search/movie`)
@@ -33,11 +33,11 @@ export default async (request: Request) => {
       },
     })
   } catch {
-    return response(502, { error: 'TMDb search upstream is unavailable.' })
+    return jsonResponse(502, { error: 'TMDb search upstream is unavailable.' })
   }
 
   if (!tmdbResponse.ok) {
-    return response(tmdbResponse.status, { error: 'TMDb search request failed.' })
+    return jsonResponse(tmdbResponse.status, { error: 'TMDb search request failed.' })
   }
 
   const payload = await tmdbResponse.json() as { results?: Array<Record<string, unknown>> }
@@ -55,5 +55,5 @@ export default async (request: Request) => {
       overview: typeof movie.overview === 'string' ? movie.overview : '',
     }))
 
-  return response(200, { results })
+  return jsonResponse(200, { results })
 }

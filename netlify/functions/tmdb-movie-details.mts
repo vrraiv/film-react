@@ -1,26 +1,26 @@
 const TMDB_API_BASE = 'https://api.themoviedb.org/3'
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500'
 
-const response = (statusCode: number, body: unknown) => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-})
+const jsonResponse = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
 
 export default async (request: Request) => {
   const bearer = process.env.TMDB_READ_ACCESS_TOKEN
   if (!bearer) {
-    return response(500, { error: 'TMDB_READ_ACCESS_TOKEN is not configured.' })
+    return jsonResponse(500, { error: 'TMDB_READ_ACCESS_TOKEN is not configured.' })
   }
 
   const url = new URL(request.url)
   const movieId = url.searchParams.get('movieId')?.trim()
 
   if (!movieId) {
-    return response(400, { error: 'movieId is required' })
+    return jsonResponse(400, { error: 'movieId is required' })
   }
   if (!/^\d+$/.test(movieId)) {
-    return response(400, { error: 'movieId must be numeric' })
+    return jsonResponse(400, { error: 'movieId must be numeric' })
   }
 
   const tmdbUrl = new URL(`${TMDB_API_BASE}/movie/${movieId}`)
@@ -35,11 +35,11 @@ export default async (request: Request) => {
       },
     })
   } catch {
-    return response(502, { error: 'TMDb details upstream is unavailable.' })
+    return jsonResponse(502, { error: 'TMDb details upstream is unavailable.' })
   }
 
   if (!tmdbResponse.ok) {
-    return response(tmdbResponse.status, { error: 'TMDb detail request failed.' })
+    return jsonResponse(tmdbResponse.status, { error: 'TMDb detail request failed.' })
   }
 
   const movie = await tmdbResponse.json() as Record<string, unknown>
@@ -53,7 +53,7 @@ export default async (request: Request) => {
   const posterPath =
     typeof movie.poster_path === 'string' || movie.poster_path === null ? movie.poster_path : null
 
-  return response(200, {
+  return jsonResponse(200, {
     id: typeof movie.id === 'number' ? movie.id : null,
     title: typeof movie.title === 'string' ? movie.title : 'Unknown title',
     releaseYear: typeof movie.release_date === 'string' ? Number(movie.release_date.slice(0, 4)) : null,

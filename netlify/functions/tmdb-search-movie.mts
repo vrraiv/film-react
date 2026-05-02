@@ -1,4 +1,5 @@
 const TMDB_API_BASE = 'https://api.themoviedb.org/3'
+const MAX_RESULTS = 8
 
 const response = (statusCode: number, body: unknown) => ({
   statusCode,
@@ -23,12 +24,17 @@ export default async (request: Request) => {
   tmdbUrl.searchParams.set('query', query)
   tmdbUrl.searchParams.set('include_adult', 'false')
 
-  const tmdbResponse = await fetch(tmdbUrl, {
-    headers: {
-      Authorization: `Bearer ${bearer}`,
-      Accept: 'application/json',
-    },
-  })
+  let tmdbResponse: Response
+  try {
+    tmdbResponse = await fetch(tmdbUrl, {
+      headers: {
+        Authorization: `Bearer ${bearer}`,
+        Accept: 'application/json',
+      },
+    })
+  } catch {
+    return response(502, { error: 'TMDb search upstream is unavailable.' })
+  }
 
   if (!tmdbResponse.ok) {
     return response(tmdbResponse.status, { error: 'TMDb search request failed.' })
@@ -36,12 +42,17 @@ export default async (request: Request) => {
 
   const payload = await tmdbResponse.json() as { results?: Array<Record<string, unknown>> }
 
-  const results = (payload.results ?? []).slice(0, 8).map((movie) => ({
-    id: movie.id,
-    title: movie.title,
-    release_date: movie.release_date,
-    poster_path: movie.poster_path,
-  }))
+  const results = (payload.results ?? [])
+    .filter((movie): movie is Record<string, unknown> =>
+      typeof movie.id === 'number' && typeof movie.title === 'string',
+    )
+    .slice(0, MAX_RESULTS)
+    .map((movie) => ({
+      id: movie.id,
+      title: movie.title,
+      release_date: typeof movie.release_date === 'string' ? movie.release_date : undefined,
+      poster_path: typeof movie.poster_path === 'string' || movie.poster_path === null ? movie.poster_path : null,
+    }))
 
   return response(200, { results })
 }

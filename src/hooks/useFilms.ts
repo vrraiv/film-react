@@ -56,6 +56,8 @@ const buildFilmEntry = (input: CreateFilmEntryInput, id: string): FilmEntry => (
   },
   notes: input.notes.trim(),
   isPublic: input.isPublic ?? false,
+  tmdbId: input.tmdbId,
+  tmdbMetadata: input.tmdbMetadata,
 })
 
 const createFilmEntry = (input: CreateFilmEntryInput): FilmEntry =>

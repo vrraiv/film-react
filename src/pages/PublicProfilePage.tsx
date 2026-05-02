@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { formatFilmTag } from '../config/filmOptions'
+import { FilmCard } from '../components/FilmCard'
 import {
   fetchPublicFilmProfile,
   type PublicFilmProfile,
 } from '../services/publicFilmProfileService'
-
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-  }).format(new Date(`${value}T00:00:00`))
 
 export function PublicProfilePage() {
   const { userId } = useParams()
@@ -92,32 +87,7 @@ export function PublicProfilePage() {
       ) : (
         <div className="film-list">
           {profile.entries.map((film) => (
-            <article className="film-card" key={film.id}>
-              <header className="film-card__header">
-                <div>
-                  <h3 className="film-card__title">{film.title}</h3>
-                  <p className="meta">
-                    {film.releaseYear ? `${film.releaseYear} - ` : ''}
-                    {formatDate(film.dateWatched)}
-                  </p>
-                </div>
-                <span className="film-card__rating">
-                  {film.rating === null ? 'Unrated' : `${film.rating.toFixed(1)} / 5`}
-                </span>
-              </header>
-
-              {film.tags.length > 0 ? (
-                <div className="tag-row">
-                  {film.tags.map((tag) => (
-                    <span className="tag-chip tag-chip--static" key={tag}>
-                      {formatFilmTag(tag)}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-
-              {film.notes ? <p className="film-card__notes">{film.notes}</p> : null}
-            </article>
+            <FilmCard key={film.id} film={film} />
           ))}
         </div>
       )}

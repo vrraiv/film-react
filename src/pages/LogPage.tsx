@@ -9,6 +9,7 @@ import {
   getLocalFilmImportStatus,
   importLocalFilmsToService,
 } from '../services/localFilmImportService'
+import { fetchTmdbMovieDetails, searchTmdbMovies, type TmdbSearchResult } from '../services/tmdbService'
 import type { FilmEntry } from '../types/film'
 
 const defaultFilters: FilmFiltersState = {
@@ -32,7 +33,22 @@ export function LogPage() {
   const [isImportingLocalFilms, setIsImportingLocalFilms] = useState(false)
   const [localImportMessage, setLocalImportMessage] = useState<string | null>(null)
   const [localImportError, setLocalImportError] = useState<string | null>(null)
+  const [showEnrichment, setShowEnrichment] = useState(false)
+  const [pendingEntries, setPendingEntries] = useState<FilmEntry[]>([])
+  const [queueIndex, setQueueIndex] = useState(0)
+  const [candidateResults, setCandidateResults] = useState<TmdbSearchResult[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearchingCandidates, setIsSearchingCandidates] = useState(false)
+  const [isLinkingEntry, setIsLinkingEntry] = useState(false)
+  const [linkedCount, setLinkedCount] = useState(0)
+  const [skippedCount, setSkippedCount] = useState(0)
+  const [enrichmentError, setEnrichmentError] = useState<string | null>(null)
   const latestSavedFilm = films.find((film) => film.id === lastSavedFilmId)
+  const filmsWithoutTmdb = useMemo(
+    () => films.filter((film) => !film.metadata.tmdb?.id),
+    [films],
+  )
+  const currentQueueEntry = pendingEntries[queueIndex] ?? null
 
   const filteredFilms = useMemo(() => {
     const minimumRating = filters.minimumRating
@@ -101,6 +117,16 @@ export function LogPage() {
     }
   }, [user?.id])
 
+  useEffect(() => {
+    if (!showEnrichment || !currentQueueEntry) {
+      return
+    }
+
+    setSearchTerm(currentQueueEntry.title)
+    setCandidateResults([])
+    setEnrichmentError(null)
+  }, [showEnrichment, queueIndex, currentQueueEntry?.id])
+
   const handleImportLocalFilms = async () => {
     if (!user || !filmLogService) {
       return
@@ -136,6 +162,85 @@ export function LogPage() {
     await deleteFilm(film.id)
     if (editingFilm?.id === film.id) {
       setEditingFilm(null)
+    }
+  }
+
+  const handleOpenEnrichmentQueue = () => {
+    setPendingEntries(filmsWithoutTmdb)
+    setQueueIndex(0)
+    setLinkedCount(0)
+    setSkippedCount(0)
+    setCandidateResults([])
+    setEnrichmentError(null)
+    setShowEnrichment(true)
+  }
+
+  const handleSearchCandidates = async (queryOverride?: string) => {
+    const query = (queryOverride ?? searchTerm).trim()
+    if (!query) {
+      return
+    }
+
+    setIsSearchingCandidates(true)
+    setEnrichmentError(null)
+    try {
+      const results = await searchTmdbMovies(query)
+      setCandidateResults(results)
+    } catch (candidateError) {
+      console.error(candidateError)
+      setEnrichmentError('Could not search TMDb right now.')
+    } finally {
+      setIsSearchingCandidates(false)
+    }
+  }
+
+  const moveToNextQueueEntry = () => {
+    setQueueIndex((current) => current + 1)
+    setCandidateResults([])
+  }
+
+  const handleSkipEntry = () => {
+    setSkippedCount((current) => current + 1)
+    moveToNextQueueEntry()
+  }
+
+  const handleLinkEntry = async (candidate: TmdbSearchResult) => {
+    if (!currentQueueEntry) {
+      return
+    }
+
+    setIsLinkingEntry(true)
+    setEnrichmentError(null)
+    try {
+      const details = await fetchTmdbMovieDetails(candidate.id)
+      await updateFilm(currentQueueEntry.id, {
+        title: currentQueueEntry.title,
+        releaseYear: currentQueueEntry.releaseYear,
+        dateWatched: currentQueueEntry.dateWatched,
+        rating: currentQueueEntry.rating,
+        notes: currentQueueEntry.notes,
+        tags: currentQueueEntry.tags,
+        isPublic: currentQueueEntry.isPublic,
+        metadata: {
+          ...currentQueueEntry.metadata,
+          tmdb: {
+            id: details.id,
+            posterPath: details.posterPath,
+            posterUrl: details.posterUrl,
+            director: details.director,
+            runtime: details.runtime,
+            genres: details.genres,
+            cast: details.cast,
+          },
+        },
+      })
+      setLinkedCount((current) => current + 1)
+      moveToNextQueueEntry()
+    } catch (linkError) {
+      console.error(linkError)
+      setEnrichmentError('Could not link this entry. Please try again.')
+    } finally {
+      setIsLinkingEntry(false)
     }
   }
 
@@ -175,6 +280,76 @@ export function LogPage() {
 
       {localImportMessage ? <p className="status-message">{localImportMessage}</p> : null}
       {localImportError ? <p className="empty-state">{localImportError}</p> : null}
+
+      <section className="panel import-panel">
+        <div className="panel__header">
+          <h3 className="panel__title">Developer tool: Enrich existing entries</h3>
+          <p className="page__copy">
+            Review-only workflow for linking TMDb metadata to existing entries.
+            Nothing is linked unless you confirm each match.
+          </p>
+          <p className="meta">
+            {filmsWithoutTmdb.length} {filmsWithoutTmdb.length === 1 ? 'entry' : 'entries'} missing TMDb IDs.
+          </p>
+        </div>
+        <button
+          className="button-secondary"
+          type="button"
+          onClick={handleOpenEnrichmentQueue}
+          disabled={filmsWithoutTmdb.length === 0}
+        >
+          Enrich existing entries
+        </button>
+      </section>
+
+      {showEnrichment ? (
+        <section className="panel">
+          <header className="panel__header">
+            <h3 className="panel__title">Enrichment review queue</h3>
+            <p className="meta">
+              Progress: {Math.min(queueIndex, pendingEntries.length)} / {pendingEntries.length} reviewed · {linkedCount} linked · {skippedCount} skipped
+            </p>
+          </header>
+          {currentQueueEntry ? (
+            <div className="field">
+              <p><strong>Entry title:</strong> {currentQueueEntry.title}</p>
+              <div className="button-row">
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search TMDb title"
+                />
+                <button className="button-secondary" type="button" onClick={() => void handleSearchCandidates()} disabled={isSearchingCandidates}>
+                  {isSearchingCandidates ? 'Searching...' : 'Search Again'}
+                </button>
+                <button className="button-secondary" type="button" onClick={handleSkipEntry}>
+                  Skip
+                </button>
+              </div>
+              <div className="tag-row">
+                {candidateResults.map((candidate) => (
+                  <article key={candidate.id} className="panel" style={{ margin: '0.5rem 0', width: '100%' }}>
+                    <p><strong>{candidate.title}</strong> {candidate.release_date ? `(${candidate.release_date.slice(0, 4)})` : ''}</p>
+                    <p className="meta">Poster: {candidate.poster_path ? `https://image.tmdb.org/t/p/w342${candidate.poster_path}` : 'None'}</p>
+                    <p>{candidate.overview?.trim() ? candidate.overview : 'No overview provided by TMDb.'}</p>
+                    <button className="button-primary" type="button" disabled={isLinkingEntry} onClick={() => void handleLinkEntry(candidate)}>
+                      {isLinkingEntry ? 'Linking...' : 'Link'}
+                    </button>
+                  </article>
+                ))}
+              </div>
+              {candidateResults.length === 0 && !isSearchingCandidates ? (
+                <button className="button-secondary" type="button" onClick={() => void handleSearchCandidates(currentQueueEntry.title)}>
+                  Search TMDb for this title
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="status-message">Queue complete. Linked {linkedCount} entries and skipped {skippedCount}.</p>
+          )}
+          {enrichmentError ? <p className="empty-state">{enrichmentError}</p> : null}
+        </section>
+      ) : null}
 
       <div className="log-grid">
         <section className="panel">

@@ -77,7 +77,7 @@ Add these Netlify environment variables under Site configuration > Environment v
 | `VITE_PUBLIC_BASE_URL` | Yes | Netlify production URL, used for auth redirects. |
 | `VITE_APP_TITLE` | No | Header title. |
 | `VITE_STORAGE_KEY_PREFIX` | No | Browser localStorage key prefix. |
-| `TMDB_BEARER_TOKEN` | Yes (for TMDb lookups) | Server-side token used by Netlify Functions only. Do not prefix with `VITE_`. |
+| `TMDB_READ_ACCESS_TOKEN` | Yes (for TMDb lookups) | Server-side token used by Netlify Functions only. Do not prefix with `VITE_`. |
 
 Set `VITE_PUBLIC_BASE_URL` to the exact production origin, without a trailing slash, for example:
 

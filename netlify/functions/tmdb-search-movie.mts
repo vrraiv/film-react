@@ -8,9 +8,9 @@ const response = (statusCode: number, body: unknown) => ({
 })
 
 export default async (request: Request) => {
-  const bearer = process.env.TMDB_BEARER_TOKEN
+  const bearer = process.env.TMDB_READ_ACCESS_TOKEN
   if (!bearer) {
-    return response(500, { error: 'TMDB_BEARER_TOKEN is not configured.' })
+    return response(500, { error: 'TMDB_READ_ACCESS_TOKEN is not configured.' })
   }
 
   const url = new URL(request.url)

@@ -1,3 +1,5 @@
+import type { NormalizedMovieMetadata } from '../services/tmdb'
+
 export type WatchContext =
   | 'theatre'
   | 'home'
@@ -26,6 +28,8 @@ export type FilmEntry = {
   metadata: FilmMetadata
   notes: string
   isPublic: boolean
+  tmdbId?: number
+  tmdbMetadata?: NormalizedMovieMetadata
 }
 
 export type CreateFilmEntryInput = {
@@ -37,4 +41,6 @@ export type CreateFilmEntryInput = {
   tags?: string[]
   metadata?: Partial<FilmMetadata>
   isPublic?: boolean
+  tmdbId?: number
+  tmdbMetadata?: NormalizedMovieMetadata
 }

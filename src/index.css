@@ -662,3 +662,27 @@ button {
   opacity: 0;
   pointer-events: none;
 }
+
+.app-shell__footer {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-16);
+  padding: var(--space-12);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.app-shell__tmdb-logo {
+  width: min(280px, 100%);
+  height: auto;
+}
+
+.app-shell__tmdb-note {
+  margin: 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}

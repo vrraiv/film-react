@@ -5,6 +5,7 @@ import {
   formatFilmTag,
 } from '../config/filmOptions'
 import type { FilmEntry } from '../types/film'
+import { getTmdbImageUrl } from '../services/tmdb'
 
 type FilmListProps = {
   films: FilmEntry[]
@@ -40,11 +41,11 @@ export function FilmList({ films, isLoading, onEdit, onDelete }: FilmListProps) 
         <article className="film-card" key={film.id}>
           <header className="film-card__header">
             <div>
-              <h3 className="film-card__title">
+              {film.tmdbMetadata?.posterPath ? <img src={getTmdbImageUrl(film.tmdbMetadata.posterPath, 'w185') ?? ''} alt="" style={{width:'72px',borderRadius:'8px',marginBottom:'0.5rem'}} /> : null}<h3 className="film-card__title">
                 <Link to={`/film/${film.id}`}>{film.title}</Link>
               </h3>
               <p className="meta">
-                {film.releaseYear ? `${film.releaseYear} • ` : ''}
+                {(film.tmdbMetadata?.releaseYear ?? film.releaseYear) ? `${film.tmdbMetadata?.releaseYear ?? film.releaseYear} • ` : ''}
                 {formatDate(film.dateWatched)}
               </p>
             </div>

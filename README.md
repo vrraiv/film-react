@@ -91,3 +91,7 @@ npm run build
 ```
 
 The app requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` at build/runtime and fails clearly if they are missing.
+
+## TMDb setup
+
+Set `TMDB_BEARER_TOKEN` in local Netlify function env (for example via Netlify CLI env files) and in your Netlify site environment variables. Never commit real tokens to git.

@@ -99,6 +99,8 @@ const toFilmEntry = (value: unknown): FilmEntry | null => {
     metadata: parseMetadata(record.metadata, record.context),
     notes: record.notes,
     isPublic: record.isPublic,
+    tmdbId: typeof record.tmdbId === "number" ? record.tmdbId : undefined,
+    tmdbMetadata: record.tmdbMetadata && typeof record.tmdbMetadata === "object" ? (record.tmdbMetadata as any) : undefined,
   }
 }
 

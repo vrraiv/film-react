@@ -17,6 +17,8 @@ export type FilmEntryRow = {
     watchContextNote: string
     ownedFormats: OwnedMediaFormat[]
     onWishlist: boolean
+    tmdbId?: number
+    tmdbMetadata?: FilmEntry['tmdbMetadata']
   }
 }
 
@@ -32,6 +34,8 @@ export const mapFilmEntryToRow = (film: FilmEntry, userId: string): FilmEntryRow
   is_public: film.isPublic,
   metadata: {
     ...film.metadata,
+    tmdbId: film.tmdbId,
+    tmdbMetadata: film.tmdbMetadata,
   },
 })
 
@@ -45,6 +49,13 @@ export const mapRowToFilmEntry = (row: FilmEntryRow): FilmEntry => ({
   notes: row.notes,
   isPublic: row.is_public,
   metadata: {
-    ...row.metadata,
+    dateLogged: row.metadata?.dateLogged ?? "",
+    firstWatch: row.metadata?.firstWatch ?? null,
+    watchContext: row.metadata?.watchContext ?? "",
+    watchContextNote: row.metadata?.watchContextNote ?? "",
+    ownedFormats: row.metadata?.ownedFormats ?? [],
+    onWishlist: row.metadata?.onWishlist ?? false,
   },
+  tmdbId: row.metadata?.tmdbId,
+  tmdbMetadata: row.metadata?.tmdbMetadata,
 })

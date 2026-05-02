@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { formatFilmTag } from '../config/filmOptions'
 import { fetchPublicFilmEntries } from '../services/publicFilmProfileService'
 import type { FilmEntry } from '../types/film'
+import { getTmdbImageUrl } from '../services/tmdb'
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -75,7 +76,7 @@ export function PublicPreviewPage() {
             <article className="film-card" key={film.id}>
               <header className="film-card__header">
                 <div>
-                  <h3 className="film-card__title">{film.title}</h3>
+                  {film.tmdbMetadata?.posterPath ? <img src={getTmdbImageUrl(film.tmdbMetadata.posterPath, 'w185') ?? ''} alt="" style={{width:'72px',borderRadius:'8px',marginBottom:'0.5rem'}} /> : null}<h3 className="film-card__title">{film.title}</h3>
                   <p className="meta">
                     {film.releaseYear ? `${film.releaseYear} - ` : ''}
                     {formatDate(film.dateWatched)}

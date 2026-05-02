@@ -17,7 +17,6 @@ type PublicFilmEntryRow = {
   notes: string
   is_public: boolean
   metadata?: FilmMetadata
-  tmdb_metadata?: FilmEntry['tmdbMetadata']
 }
 
 export type PublicFilmProfile = {
@@ -36,7 +35,6 @@ const publicFilmEntryColumns = `
   notes,
   is_public
   ,metadata
-  ,tmdb_metadata
 `
 
 const defaultPublicMetadata = (): FilmMetadata => ({
@@ -59,7 +57,7 @@ const mapPublicRowToFilmEntry = (row: PublicFilmEntryRow): FilmEntry => ({
   notes: row.notes,
   isPublic: row.is_public,
   metadata: defaultPublicMetadata(),
-  tmdbMetadata: row.tmdb_metadata ?? row.metadata?.tmdb ?? null,
+  tmdbMetadata: row.metadata?.tmdb ?? null,
 })
 
 export const fetchPublicFilmProfile = async (

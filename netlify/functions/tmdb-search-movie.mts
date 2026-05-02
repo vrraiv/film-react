@@ -52,6 +52,7 @@ export default async (request: Request) => {
       title: movie.title,
       release_date: typeof movie.release_date === 'string' ? movie.release_date : undefined,
       poster_path: typeof movie.poster_path === 'string' || movie.poster_path === null ? movie.poster_path : null,
+      overview: typeof movie.overview === 'string' ? movie.overview : '',
     }))
 
   return response(200, { results })

@@ -25,6 +25,7 @@ const defaultMetadata = (): FilmMetadata => ({
   watchContextNote: '',
   ownedFormats: [],
   onWishlist: false,
+  tmdb: null,
 })
 
 const isOwnedMediaFormat = (value: unknown): value is OwnedMediaFormat =>
@@ -58,6 +59,15 @@ const parseMetadata = (value: unknown, legacyContext?: unknown): FilmMetadata =>
       ? record.ownedFormats.filter(isOwnedMediaFormat)
       : [],
     onWishlist: typeof record.onWishlist === 'boolean' ? record.onWishlist : false,
+    tmdb: record.tmdb && typeof record.tmdb === 'object' ? {
+      id: typeof (record.tmdb as Record<string, unknown>).id === 'number' ? ((record.tmdb as Record<string, unknown>).id as number) : 0,
+      posterPath: typeof (record.tmdb as Record<string, unknown>).posterPath === 'string' ? (record.tmdb as Record<string, unknown>).posterPath as string : null,
+      posterUrl: typeof (record.tmdb as Record<string, unknown>).posterUrl === 'string' ? (record.tmdb as Record<string, unknown>).posterUrl as string : null,
+      director: typeof (record.tmdb as Record<string, unknown>).director === 'string' ? (record.tmdb as Record<string, unknown>).director as string : null,
+      runtime: typeof (record.tmdb as Record<string, unknown>).runtime === 'number' ? (record.tmdb as Record<string, unknown>).runtime as number : null,
+      genres: Array.isArray((record.tmdb as Record<string, unknown>).genres) ? ((record.tmdb as Record<string, unknown>).genres as unknown[]).filter((item): item is string => typeof item === "string") : [],
+      cast: Array.isArray((record.tmdb as Record<string, unknown>).cast) ? ((record.tmdb as Record<string, unknown>).cast as unknown[]).filter((item): item is string => typeof item === "string") : [],
+    } : null,
   }
 }
 

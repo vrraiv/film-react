@@ -17,6 +17,15 @@ export type FilmEntryRow = {
     watchContextNote: string
     ownedFormats: OwnedMediaFormat[]
     onWishlist: boolean
+    tmdb: {
+      id: number
+      posterPath: string | null
+      posterUrl: string | null
+      director: string | null
+      runtime: number | null
+      genres: string[]
+      cast: string[]
+    } | null
   }
 }
 

@@ -7,6 +7,16 @@ export type WatchContext =
 
 export type OwnedMediaFormat = '4k-uhd' | 'blu-ray' | 'dvd' | 'vhs'
 
+export type FilmTmdbMetadata = {
+  id: number
+  posterPath: string | null
+  posterUrl: string | null
+  director: string | null
+  runtime: number | null
+  genres: string[]
+  cast: string[]
+}
+
 export type FilmMetadata = {
   dateLogged: string
   firstWatch: boolean | null
@@ -14,6 +24,7 @@ export type FilmMetadata = {
   watchContextNote: string
   ownedFormats: OwnedMediaFormat[]
   onWishlist: boolean
+  tmdb: FilmTmdbMetadata | null
 }
 
 export type FilmEntry = {

@@ -108,6 +108,18 @@ export function FilmDetailPage() {
             <dt>Notes</dt>
             <dd>{film.notes || 'None'}</dd>
           </div>
+
+          {film.metadata.tmdb ? (
+            <>
+              <div><dt>TMDb ID</dt><dd>{film.metadata.tmdb.id}</dd></div>
+              <div><dt>Director</dt><dd>{film.metadata.tmdb.director ?? 'Unknown'}</dd></div>
+              <div><dt>Runtime</dt><dd>{film.metadata.tmdb.runtime ? `${film.metadata.tmdb.runtime} min` : 'Unknown'}</dd></div>
+              <div><dt>Genres</dt><dd>{film.metadata.tmdb.genres.length ? film.metadata.tmdb.genres.join(', ') : 'None'}</dd></div>
+              <div><dt>Cast</dt><dd>{film.metadata.tmdb.cast.length ? film.metadata.tmdb.cast.join(', ') : 'None'}</dd></div>
+              <div><dt>Poster</dt><dd>{film.metadata.tmdb.posterUrl ? <a href={film.metadata.tmdb.posterUrl} target="_blank" rel="noreferrer">Open poster</a> : 'None'}</dd></div>
+            </>
+          ) : null}
+
           <div>
             <dt>Film ID</dt>
             <dd><code>{film.id}</code></dd>

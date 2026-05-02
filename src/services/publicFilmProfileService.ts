@@ -42,6 +42,7 @@ const defaultPublicMetadata = (): FilmMetadata => ({
   watchContextNote: '',
   ownedFormats: [],
   onWishlist: false,
+  tmdb: null,
 })
 
 const mapPublicRowToFilmEntry = (row: PublicFilmEntryRow): FilmEntry => ({

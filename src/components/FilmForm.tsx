@@ -5,9 +5,11 @@ import {
 } from '../config/filmOptions'
 import { RATING_OPTIONS } from '../config/filmTags'
 import { TagInput } from './TagInput'
+import { fetchTmdbMovieDetails, searchTmdbMovies, type TmdbSearchResult } from '../services/tmdbService'
 import type {
   CreateFilmEntryInput,
   FilmEntry,
+  FilmTmdbMetadata,
   OwnedMediaFormat,
   WatchContext,
 } from '../types/film'
@@ -33,6 +35,7 @@ type FilmFormState = {
   onWishlist: boolean
   isPublic: boolean
   notes: string
+  tmdb: FilmTmdbMetadata | null
 }
 
 const initialState = (film?: FilmEntry): FilmFormState => ({
@@ -53,10 +56,14 @@ const initialState = (film?: FilmEntry): FilmFormState => ({
   onWishlist: film?.metadata.onWishlist ?? false,
   isPublic: film?.isPublic ?? false,
   notes: film?.notes ?? '',
+  tmdb: film?.metadata.tmdb ?? null,
 })
 
 export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add film', onCancel }: FilmFormProps) {
   const [form, setForm] = useState<FilmFormState>(() => initialState(initialValues))
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState<TmdbSearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
 
   const handleChange =
     (field: keyof FilmFormState) =>
@@ -68,6 +75,36 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
       const { value } = event.target
       setForm((current) => ({ ...current, [field]: value }))
     }
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return
+    setIsSearching(true)
+    try {
+      const results = await searchTmdbMovies(searchTerm)
+      setSearchResults(results)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const chooseMovie = async (result: TmdbSearchResult) => {
+    const details = await fetchTmdbMovieDetails(Number(result.id))
+    setForm((current) => ({
+      ...current,
+      title: details.title,
+      releaseYear: details.releaseYear ? String(details.releaseYear) : current.releaseYear,
+      tmdb: {
+        id: details.id,
+        posterPath: details.posterPath,
+        posterUrl: details.posterUrl,
+        director: details.director,
+        runtime: details.runtime,
+        genres: details.genres,
+        cast: details.cast,
+      },
+    }))
+    setSearchResults([])
+  }
 
   const toggleOwnedFormat = (format: OwnedMediaFormat) => {
     setForm((current) => ({
@@ -94,6 +131,7 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
         watchContextNote: form.watchContextNote,
         ownedFormats: form.ownedFormats,
         onWishlist: form.onWishlist,
+        tmdb: form.tmdb,
       },
       notes: form.notes,
       isPublic: form.isPublic,
@@ -107,179 +145,31 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
   return (
     <form className="form-grid" onSubmit={handleSubmit}>
       <div className="field">
+        <label htmlFor="tmdbSearch">Find on TMDb</label>
+        <div className="button-row">
+          <input id="tmdbSearch" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search movie title" />
+          <button className="button-secondary" type="button" onClick={handleSearch} disabled={isSearching}>{isSearching ? 'Searching...' : 'Search'}</button>
+        </div>
+        {searchResults.length > 0 ? <div className="tag-row">{searchResults.map((result) => <button className="button-secondary" key={result.id} type="button" onClick={() => chooseMovie(result)}>{result.title} {result.release_date ? `(${result.release_date.slice(0,4)})` : ''}</button>)}</div> : null}
+      </div>
+      <div className="field">
         <label htmlFor="title">Film title</label>
-        <input
-          id="title"
-          name="title"
-          value={form.title}
-          onChange={handleChange('title')}
-          placeholder="In the Mood for Love"
-          autoComplete="off"
-          required
-        />
+        <input id="title" name="title" value={form.title} onChange={handleChange('title')} placeholder="In the Mood for Love" autoComplete="off" required />
       </div>
 
       <div className="form-grid__row">
-        <div className="field">
-          <label htmlFor="releaseYear">Release year</label>
-          <input
-            id="releaseYear"
-            name="releaseYear"
-            type="number"
-            min="1888"
-            max="2100"
-            step="1"
-            inputMode="numeric"
-            value={form.releaseYear}
-            onChange={handleChange('releaseYear')}
-            placeholder="2000"
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="dateWatched">Date watched</label>
-          <input
-            id="dateWatched"
-            name="dateWatched"
-            type="date"
-            value={form.dateWatched}
-            onChange={handleChange('dateWatched')}
-            required
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="rating">Rating</label>
-          <select
-            id="rating"
-            name="rating"
-            value={form.rating}
-            onChange={handleChange('rating')}
-          >
-            <option value="">Unrated</option>
-            {RATING_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} - {option.description}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="field"><label htmlFor="releaseYear">Release year</label><input id="releaseYear" name="releaseYear" type="number" min="1888" max="2100" step="1" inputMode="numeric" value={form.releaseYear} onChange={handleChange('releaseYear')} placeholder="2000" /></div>
+        <div className="field"><label htmlFor="dateWatched">Date watched</label><input id="dateWatched" name="dateWatched" type="date" value={form.dateWatched} onChange={handleChange('dateWatched')} required /></div>
+        <div className="field"><label htmlFor="rating">Rating</label><select id="rating" name="rating" value={form.rating} onChange={handleChange('rating')}><option value="">Unrated</option>{RATING_OPTIONS.map((option) => (<option key={option.value} value={option.value}>{option.label} - {option.description}</option>))}</select></div>
       </div>
-
-      <TagInput
-        selectedTags={form.tags}
-        onChange={(tags) => setForm((current) => ({ ...current, tags }))}
-      />
-
-      <div className="field">
-        <label htmlFor="watchContext">Watch context</label>
-        <select
-          id="watchContext"
-          name="watchContext"
-          value={form.watchContext}
-          onChange={handleChange('watchContext')}
-        >
-          <option value="">Choose a context</option>
-          {watchContextOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="field">
-        <label htmlFor="firstWatch">First watch?</label>
-        <select
-          id="firstWatch"
-          name="firstWatch"
-          value={form.firstWatch}
-          onChange={handleChange('firstWatch')}
-        >
-          <option value="">Not set</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
-        </select>
-      </div>
-
-      <div className="field">
-        <label htmlFor="watchContextNote">Context note</label>
-        <input
-          id="watchContextNote"
-          name="watchContextNote"
-          value={form.watchContextNote}
-          onChange={handleChange('watchContextNote')}
-          placeholder="Optional note about the setup or screening"
-        />
-      </div>
-
-      <div className="field">
-        <label>Collection details</label>
-        <div className="check-grid">
-          {ownedMediaOptions.map((option) => (
-            <label key={option.value} className="check-pill">
-              <input
-                type="checkbox"
-                checked={form.ownedFormats.includes(option.value)}
-                onChange={() => toggleOwnedFormat(option.value)}
-              />
-              <span>{option.label}</span>
-            </label>
-          ))}
-          <label className="check-pill check-pill--accent">
-            <input
-              type="checkbox"
-              checked={form.onWishlist}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  onWishlist: event.target.checked,
-                }))
-              }
-            />
-            <span>Keep on wishlist</span>
-          </label>
-        </div>
-      </div>
-
-
-      <div className="field">
-        <label className="check-pill check-pill--accent">
-          <input
-            type="checkbox"
-            checked={form.isPublic}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                isPublic: event.target.checked,
-              }))
-            }
-          />
-          <span>Show in public preview</span>
-        </label>
-      </div>
-
-      <div className="field">
-        <label htmlFor="notes">Notes</label>
-        <textarea
-          id="notes"
-          name="notes"
-          value={form.notes}
-          onChange={handleChange('notes')}
-          placeholder="A few lines about what landed, what dragged, or what you want to remember."
-        />
-      </div>
-
-      <div className="button-row">
-        <button className="button-primary" type="submit" disabled={isSaving}>
-          {isSaving ? 'Saving...' : submitLabel}
-        </button>
-        {onCancel ? (
-          <button className="button-secondary" type="button" onClick={onCancel}>
-            Cancel
-          </button>
-        ) : null}
-      </div>
+      <TagInput selectedTags={form.tags} onChange={(tags) => setForm((current) => ({ ...current, tags }))} />
+      <div className="field"><label htmlFor="watchContext">Watch context</label><select id="watchContext" name="watchContext" value={form.watchContext} onChange={handleChange('watchContext')}><option value="">Choose a context</option>{watchContextOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
+      <div className="field"><label htmlFor="firstWatch">First watch?</label><select id="firstWatch" name="firstWatch" value={form.firstWatch} onChange={handleChange('firstWatch')}><option value="">Not set</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+      <div className="field"><label htmlFor="watchContextNote">Context note</label><input id="watchContextNote" name="watchContextNote" value={form.watchContextNote} onChange={handleChange('watchContextNote')} placeholder="Optional note about the setup or screening" /></div>
+      <div className="field"><label>Collection details</label><div className="check-grid">{ownedMediaOptions.map((option) => (<label key={option.value} className="check-pill"><input type="checkbox" checked={form.ownedFormats.includes(option.value)} onChange={() => toggleOwnedFormat(option.value)} /><span>{option.label}</span></label>))}<label className="check-pill check-pill--accent"><input type="checkbox" checked={form.onWishlist} onChange={(event) => setForm((current) => ({ ...current, onWishlist: event.target.checked }))} /><span>Keep on wishlist</span></label></div></div>
+      <div className="field"><label className="check-pill check-pill--accent"><input type="checkbox" checked={form.isPublic} onChange={(event) => setForm((current) => ({ ...current, isPublic: event.target.checked }))} /><span>Show in public preview</span></label></div>
+      <div className="field"><label htmlFor="notes">Notes</label><textarea id="notes" name="notes" value={form.notes} onChange={handleChange('notes')} placeholder="A few lines about what landed, what dragged, or what you want to remember." /></div>
+      <div className="button-row"><button className="button-primary" type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : submitLabel}</button>{onCancel ? (<button className="button-secondary" type="button" onClick={onCancel}>Cancel</button>) : null}</div>
     </form>
   )
 }

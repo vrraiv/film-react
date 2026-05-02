@@ -35,6 +35,7 @@ export type FilmEntry = {
   rating: number | null
   tags: string[]
   metadata: FilmMetadata
+  tmdbMetadata?: FilmTmdbMetadata | null
   notes: string
   isPublic: boolean
 }

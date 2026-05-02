@@ -472,6 +472,38 @@ button {
   padding: var(--space-10) var(--space-11);
 }
 
+.film-card__content {
+  display: grid;
+  gap: var(--space-9);
+  grid-template-columns: 108px minmax(0, 1fr);
+  align-items: start;
+}
+
+.film-card__poster-wrap {
+  width: 100%;
+}
+
+.film-card__poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.film-card__poster--placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.film-card__details {
+  display: grid;
+  gap: var(--space-9);
+}
+
 .film-card__header {
   display: flex;
   gap: var(--space-9);
@@ -630,6 +662,10 @@ button {
 @media (max-width: 720px) {
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .film-card__content {
+    grid-template-columns: 84px minmax(0, 1fr);
   }
 }
 

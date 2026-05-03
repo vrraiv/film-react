@@ -1,11 +1,11 @@
-import {
-  filmTagOptions,
-  watchContextOptions,
-} from '../config/filmOptions'
+import { watchContextOptions } from '../config/filmOptions'
 import type { WatchContext } from '../types/film'
 
 export type FilmFiltersState = {
-  selectedTag: string
+  titleQuery: string
+  releaseYearQuery: string
+  directorQuery: string
+  tagQuery: string
   minimumRating: string
   watchContext: WatchContext | ''
 }
@@ -19,21 +19,55 @@ export function FilmFilters({ filters, onChange }: FilmFiltersProps) {
   return (
     <div className="filter-grid">
       <div className="field">
-        <label htmlFor="filterTag">Film tag</label>
-        <select
-          id="filterTag"
-          value={filters.selectedTag}
+        <label htmlFor="filterTitle">Title keyword</label>
+        <input
+          id="filterTitle"
+          type="text"
+          value={filters.titleQuery}
+          placeholder="e.g. alien"
           onChange={(event) =>
-            onChange({ ...filters, selectedTag: event.target.value })
+            onChange({ ...filters, titleQuery: event.target.value })
           }
-        >
-          <option value="">All tags</option>
-          {filmTagOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.categoryLabel}: {option.label}
-            </option>
-          ))}
-        </select>
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="filterYear">Year</label>
+        <input
+          id="filterYear"
+          type="text"
+          value={filters.releaseYearQuery}
+          placeholder="e.g. 1979"
+          onChange={(event) =>
+            onChange({ ...filters, releaseYearQuery: event.target.value })
+          }
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="filterDirector">Director</label>
+        <input
+          id="filterDirector"
+          type="text"
+          value={filters.directorQuery}
+          placeholder="e.g. ridley scott"
+          onChange={(event) =>
+            onChange({ ...filters, directorQuery: event.target.value })
+          }
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="filterTag">Tag</label>
+        <input
+          id="filterTag"
+          type="text"
+          value={filters.tagQuery}
+          placeholder="manual tag search"
+          onChange={(event) =>
+            onChange({ ...filters, tagQuery: event.target.value })
+          }
+        />
       </div>
 
       <div className="field">

@@ -13,11 +13,12 @@ export type FilmFiltersState = {
 type FilmFiltersProps = {
   filters: FilmFiltersState
   onChange: (filters: FilmFiltersState) => void
+  compact?: boolean
 }
 
-export function FilmFilters({ filters, onChange }: FilmFiltersProps) {
+export function FilmFilters({ filters, onChange, compact = false }: FilmFiltersProps) {
   return (
-    <div className="filter-grid">
+    <div className={['filter-grid', compact ? 'filter-grid--compact' : ''].filter(Boolean).join(' ')}>
       <div className="field">
         <label htmlFor="filterTitle">Title keyword</label>
         <input
@@ -44,7 +45,8 @@ export function FilmFilters({ filters, onChange }: FilmFiltersProps) {
         />
       </div>
 
-      <div className="field">
+      {!compact ? (
+        <div className="field">
         <label htmlFor="filterDirector">Director</label>
         <input
           id="filterDirector"
@@ -55,7 +57,8 @@ export function FilmFilters({ filters, onChange }: FilmFiltersProps) {
             onChange({ ...filters, directorQuery: event.target.value })
           }
         />
-      </div>
+        </div>
+      ) : null}
 
       <div className="field">
         <label htmlFor="filterTag">Tag</label>

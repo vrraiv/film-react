@@ -13,7 +13,10 @@ import { fetchTmdbMovieDetails, searchTmdbMovies, type TmdbSearchResult } from '
 import type { FilmEntry } from '../types/film'
 
 const defaultFilters: FilmFiltersState = {
-  selectedTag: '',
+  titleQuery: '',
+  releaseYearQuery: '',
+  directorQuery: '',
+  tagQuery: '',
   minimumRating: '',
   watchContext: '',
 }
@@ -54,10 +57,34 @@ export function LogPage() {
     const minimumRating = filters.minimumRating
       ? Number(filters.minimumRating)
       : null
+    const titleQuery = filters.titleQuery.trim().toLowerCase()
+    const yearQuery = filters.releaseYearQuery.trim()
+    const directorQuery = filters.directorQuery.trim().toLowerCase()
+    const tagQuery = filters.tagQuery.trim().toLowerCase()
 
     return films.filter((film) => {
-      if (filters.selectedTag && !film.tags.includes(filters.selectedTag)) {
+      if (titleQuery && !film.title.toLowerCase().includes(titleQuery)) {
         return false
+      }
+
+      if (yearQuery && String(film.releaseYear ?? '').trim() !== yearQuery) {
+        return false
+      }
+
+      if (directorQuery) {
+        const director = film.metadata.tmdb?.director?.toLowerCase() ?? ''
+        if (!director.includes(directorQuery)) {
+          return false
+        }
+      }
+
+      if (tagQuery) {
+        const hasTagMatch = film.tags.some((tag) =>
+          tag.toLowerCase().includes(tagQuery),
+        )
+        if (!hasTagMatch) {
+          return false
+        }
       }
 
       if (minimumRating !== null && (film.rating === null || film.rating < minimumRating)) {
@@ -384,8 +411,7 @@ export function LogPage() {
           <header className="panel__header">
             <h3 className="panel__title">Recent films</h3>
             <p className="page__copy">
-              Filter by taste tag, rating, or watch context without blending those
-              non-taste details into the recommendation layer.
+              Search by title, year, director, or tag, then narrow by rating and context.
             </p>
           </header>
 

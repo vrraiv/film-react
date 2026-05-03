@@ -390,6 +390,29 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.diary-filters {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.filter-grid--compact {
+  gap: var(--space-5);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.filter-grid--compact .field {
+  gap: var(--space-1);
+}
+
+.filter-grid--compact .field label {
+  font-size: 0.75rem;
+}
+
+.filter-grid--compact .field input,
+.filter-grid--compact .field select {
+  padding: 0.4rem 0.5rem;
+}
+
 .button-primary {
   width: fit-content;
   padding: var(--space-7) var(--space-12);
@@ -623,6 +646,10 @@ button {
   .form-grid__row,
   .filter-grid {
     grid-template-columns: 1fr;
+  }
+
+  .filter-grid--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

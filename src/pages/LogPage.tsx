@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
-import { FilmFilters, type FilmFiltersState } from '../components/FilmFilters'
 import { FilmForm } from '../components/FilmForm'
 import { FilmList } from '../components/FilmList'
 import { useFilms } from '../hooks/useFilms'
@@ -12,15 +11,6 @@ import {
 import { fetchTmdbMovieDetails, searchTmdbMovies, type TmdbSearchResult } from '../services/tmdbService'
 import type { FilmEntry } from '../types/film'
 
-const defaultFilters: FilmFiltersState = {
-  titleQuery: '',
-  releaseYearQuery: '',
-  directorQuery: '',
-  tagQuery: '',
-  minimumRating: '',
-  watchContext: '',
-}
-
 export function LogPage() {
   const { user } = useAuth()
   const filmLogService = useMemo(
@@ -28,7 +18,6 @@ export function LogPage() {
     [user?.id],
   )
   const { films, isLoading, isSaving, error, lastSavedFilmId, reloadFilms, addFilm, updateFilm, deleteFilm } = useFilms(filmLogService)
-  const [filters, setFilters] = useState<FilmFiltersState>(defaultFilters)
   const [editingFilm, setEditingFilm] = useState<FilmEntry | null>(null)
   const [localImportCount, setLocalImportCount] = useState(0)
   const [showLocalImport, setShowLocalImport] = useState(false)
@@ -52,55 +41,6 @@ export function LogPage() {
     [films],
   )
   const currentQueueEntry = pendingEntries[queueIndex] ?? null
-
-  const filteredFilms = useMemo(() => {
-    const minimumRating = filters.minimumRating
-      ? Number(filters.minimumRating)
-      : null
-    const titleQuery = filters.titleQuery.trim().toLowerCase()
-    const yearQuery = filters.releaseYearQuery.trim()
-    const directorQuery = filters.directorQuery.trim().toLowerCase()
-    const tagQuery = filters.tagQuery.trim().toLowerCase()
-
-    return films.filter((film) => {
-      if (titleQuery && !film.title.toLowerCase().includes(titleQuery)) {
-        return false
-      }
-
-      if (yearQuery && String(film.releaseYear ?? '').trim() !== yearQuery) {
-        return false
-      }
-
-      if (directorQuery) {
-        const director = film.metadata.tmdb?.director?.toLowerCase() ?? ''
-        if (!director.includes(directorQuery)) {
-          return false
-        }
-      }
-
-      if (tagQuery) {
-        const hasTagMatch = film.tags.some((tag) =>
-          tag.toLowerCase().includes(tagQuery),
-        )
-        if (!hasTagMatch) {
-          return false
-        }
-      }
-
-      if (minimumRating !== null && (film.rating === null || film.rating < minimumRating)) {
-        return false
-      }
-
-      if (
-        filters.watchContext &&
-        film.metadata.watchContext !== filters.watchContext
-      ) {
-        return false
-      }
-
-      return true
-    })
-  }, [films, filters])
 
   useEffect(() => {
     let isMounted = true
@@ -410,18 +350,12 @@ export function LogPage() {
         <section className="panel">
           <header className="panel__header">
             <h3 className="panel__title">Recent films</h3>
-            <p className="page__copy">
-              Search by title, year, director, or tag, then narrow by rating and context.
-            </p>
+            <p className="page__copy">Browse your most recently logged films.</p>
           </header>
-
-          <FilmFilters filters={filters} onChange={setFilters} />
-          <p className="meta">
-            Showing {filteredFilms.length} of {films.length} logged films.
-          </p>
+          <p className="meta">Showing {films.length} logged films.</p>
 
           <FilmList
-            films={filteredFilms}
+            films={films}
             isLoading={isLoading}
             onEdit={setEditingFilm}
             onDelete={handleDeleteFilm}

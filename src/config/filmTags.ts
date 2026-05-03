@@ -60,6 +60,10 @@ export const TAG_CATEGORIES: TagCategoryConfig[] = [
 ] as const
 
 export const FILM_TAGS: FilmTag[] = [
+  { id: 'action', label: 'Action', category: 'genre_form' },
+  { id: 'adventure', label: 'Adventure', category: 'genre_form' },
+  { id: 'biopic', label: 'Biopic', category: 'genre_form' },
+  { id: 'childrens', label: "Children's", category: 'genre_form' },
   { id: 'drama', label: 'Drama', category: 'genre_form' },
   { id: 'comedy', label: 'Comedy', category: 'genre_form' },
   { id: 'thriller', label: 'Thriller', category: 'genre_form' },
@@ -71,6 +75,7 @@ export const FILM_TAGS: FilmTag[] = [
   { id: 'documentary', label: 'Documentary', category: 'genre_form' },
   { id: 'animation', label: 'Animation', category: 'genre_form' },
   { id: 'musical', label: 'Musical', category: 'genre_form' },
+  { id: 'mystery', label: 'Mystery', category: 'genre_form' },
   { id: 'western', label: 'Western', category: 'genre_form' },
   { id: 'war', label: 'War', category: 'genre_form' },
   { id: 'experimental', label: 'Experimental', category: 'genre_form' },
@@ -113,6 +118,10 @@ export const FILM_TAGS: FilmTag[] = [
   { id: 'art_artists', label: 'Art / Artists', category: 'themes_subject' },
   { id: 'politics', label: 'Politics', category: 'themes_subject' },
   { id: 'religion', label: 'Religion', category: 'themes_subject' },
+  { id: 'nature', label: 'Nature', category: 'themes_subject' },
+  { id: 'environment', label: 'Environment', category: 'themes_subject' },
+  { id: 'duty', label: 'Duty', category: 'themes_subject' },
+  { id: 'trauma', label: 'Trauma', category: 'themes_subject' },
   { id: 'grief', label: 'Grief', category: 'themes_subject' },
   { id: 'memory', label: 'Memory', category: 'themes_subject' },
   { id: 'identity', label: 'Identity', category: 'themes_subject' },

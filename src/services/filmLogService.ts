@@ -6,6 +6,7 @@ export interface FilmLogService {
   fetchEntries: () => Promise<FilmEntry[]>
   createEntry: (entry: FilmEntry) => Promise<FilmEntry>
   updateEntry: (entry: FilmEntry) => Promise<FilmEntry>
+  publishImportedEntries: () => Promise<number>
   deleteEntry: (entryId: string) => Promise<void>
 }
 
@@ -88,6 +89,23 @@ class SupabaseFilmLogService implements FilmLogService {
     }
 
     return mapRowToFilmEntry(data)
+  }
+
+  async publishImportedEntries() {
+    const { data, error } = await supabase
+      .from('film_entries')
+      .update({ is_public: true })
+      .eq('user_id', this.userId)
+      .eq('is_public', false)
+      .eq('metadata->>source', 'letterboxd')
+      .select('id')
+      .returns<Array<{ id: string }>>()
+
+    if (error) {
+      throw new Error(`Could not publish imported film entries: ${error.message}`)
+    }
+
+    return data.length
   }
 
   async deleteEntry(entryId: string) {

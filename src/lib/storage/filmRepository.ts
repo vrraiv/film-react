@@ -1,7 +1,9 @@
 import type {
   FilmEntry,
+  FilmSource,
   FilmMetadata,
   OwnedMediaFormat,
+  TmdbMatchStatus,
   WatchContext,
 } from '../../types/film'
 import { appConfig } from '../../config/env'
@@ -34,6 +36,18 @@ const isOwnedMediaFormat = (value: unknown): value is OwnedMediaFormat =>
 const isWatchContext = (value: unknown): value is WatchContext =>
   typeof value === 'string' && watchContexts.has(value)
 
+const isFilmSource = (value: unknown): value is FilmSource =>
+  value === 'letterboxd'
+
+const isTmdbMatchStatus = (value: unknown): value is TmdbMatchStatus =>
+  typeof value === 'string' &&
+  ['not_attempted', 'matched', 'needs_review', 'no_match'].includes(value)
+
+const parseStringArray = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : undefined
+
 const parseMetadata = (value: unknown, legacyContext?: unknown): FilmMetadata => {
   if (!value || typeof value !== 'object') {
     return {
@@ -44,6 +58,10 @@ const parseMetadata = (value: unknown, legacyContext?: unknown): FilmMetadata =>
   }
 
   const record = value as Record<string, unknown>
+
+  const legacyTags = parseStringArray(record.legacyTags)
+  const sourceUrl =
+    typeof record.sourceUrl === 'string' ? record.sourceUrl : undefined
 
   return {
     dateLogged: typeof record.dateLogged === 'string' ? record.dateLogged : '',
@@ -68,6 +86,13 @@ const parseMetadata = (value: unknown, legacyContext?: unknown): FilmMetadata =>
       genres: Array.isArray((record.tmdb as Record<string, unknown>).genres) ? ((record.tmdb as Record<string, unknown>).genres as unknown[]).filter((item): item is string => typeof item === "string") : [],
       cast: Array.isArray((record.tmdb as Record<string, unknown>).cast) ? ((record.tmdb as Record<string, unknown>).cast as unknown[]).filter((item): item is string => typeof item === "string") : [],
     } : null,
+    ...(isFilmSource(record.source) ? { source: record.source } : {}),
+    ...(sourceUrl !== undefined ? { sourceUrl } : {}),
+    ...(legacyTags !== undefined ? { legacyTags } : {}),
+    ...(isTmdbMatchStatus(record.tmdbMatchStatus)
+      ? { tmdbMatchStatus: record.tmdbMatchStatus }
+      : {}),
+    tmdbReviewCandidate: null,
   }
 }
 

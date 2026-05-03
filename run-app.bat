@@ -19,8 +19,9 @@ if not exist "node_modules" (
   )
 )
 
-echo Starting film-react...
-call npm.cmd run dev
+echo Starting film-react with Netlify Dev...
+echo Use the Netlify Dev URL shown below, usually http://localhost:8888/
+call npm.cmd run dev:netlify
 set EXIT_CODE=%ERRORLEVEL%
 
 popd

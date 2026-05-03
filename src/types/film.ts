@@ -9,6 +9,8 @@ export type OwnedMediaFormat = '4k-uhd' | 'blu-ray' | 'dvd' | 'vhs'
 
 export type FilmTmdbMetadata = {
   id: number
+  title?: string
+  releaseYear?: number | null
   posterPath: string | null
   posterUrl: string | null
   director: string | null
@@ -16,6 +18,14 @@ export type FilmTmdbMetadata = {
   genres: string[]
   cast: string[]
 }
+
+export type FilmSource = 'letterboxd'
+
+export type TmdbMatchStatus =
+  | 'not_attempted'
+  | 'matched'
+  | 'needs_review'
+  | 'no_match'
 
 export type FilmMetadata = {
   dateLogged: string
@@ -25,6 +35,12 @@ export type FilmMetadata = {
   ownedFormats: OwnedMediaFormat[]
   onWishlist: boolean
   tmdb: FilmTmdbMetadata | null
+  source?: FilmSource
+  sourceUrl?: string
+  legacyTags?: string[]
+  tmdbMatchStatus?: TmdbMatchStatus
+  tmdbReviewCandidate?: FilmTmdbMetadata | null
+  tmdbReviewReason?: string
 }
 
 export type FilmEntry = {

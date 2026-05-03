@@ -195,6 +195,7 @@ export const useFilms = (
       {
         ...input,
         metadata: {
+          ...existingFilm.metadata,
           ...input.metadata,
           dateLogged: existingFilm.metadata.dateLogged,
         },

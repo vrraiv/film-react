@@ -722,3 +722,124 @@ button {
   color: var(--text-muted);
   font-size: 0.95rem;
 }
+
+.import-tabs,
+.import-preview-actions,
+.import-tag-row__header {
+  display: flex;
+  gap: var(--space-9);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.import-summary-grid,
+.import-tag-list {
+  display: grid;
+  gap: var(--space-9);
+}
+
+.import-summary {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-9);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+}
+
+.import-issues {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-9);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.import-issues ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.import-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+}
+
+.import-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.import-table th,
+.import-table td {
+  padding: var(--space-7);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.import-table th {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.import-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.import-table td strong,
+.import-table td .meta {
+  display: block;
+}
+
+.import-status {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-control);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.import-status--new,
+.import-status--rating-only,
+.import-status--possible-rewatch {
+  border-color: rgba(38, 87, 63, 0.22);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.import-status--rating-merge {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.import-status--duplicate,
+.import-status--file-duplicate {
+  color: var(--text-muted);
+}
+
+.import-tag-row {
+  display: grid;
+  gap: var(--space-9);
+  padding: var(--space-10);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+}
+
+.import-tag-row h4 {
+  margin: 0 0 var(--space-2);
+  font-size: 1.05rem;
+}

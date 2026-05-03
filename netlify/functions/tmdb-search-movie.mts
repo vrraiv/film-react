@@ -15,14 +15,21 @@ export default async (request: Request) => {
 
   const url = new URL(request.url)
   const query = url.searchParams.get('query')?.trim()
+  const year = url.searchParams.get('year')?.trim()
 
   if (!query) {
     return jsonResponse(400, { error: 'query is required' })
+  }
+  if (year && !/^\d{4}$/.test(year)) {
+    return jsonResponse(400, { error: 'year must be a four-digit year' })
   }
 
   const tmdbUrl = new URL(`${TMDB_API_BASE}/search/movie`)
   tmdbUrl.searchParams.set('query', query)
   tmdbUrl.searchParams.set('include_adult', 'false')
+  if (year) {
+    tmdbUrl.searchParams.set('year', year)
+  }
 
   let tmdbResponse: Response
   try {

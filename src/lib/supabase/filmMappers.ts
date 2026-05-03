@@ -1,4 +1,10 @@
-import type { FilmEntry, OwnedMediaFormat, WatchContext } from '../../types/film'
+import type {
+  FilmEntry,
+  FilmSource,
+  OwnedMediaFormat,
+  TmdbMatchStatus,
+  WatchContext,
+} from '../../types/film'
 
 export type FilmEntryRow = {
   id: string
@@ -19,6 +25,8 @@ export type FilmEntryRow = {
     onWishlist: boolean
     tmdb: {
       id: number
+      title?: string
+      releaseYear?: number | null
       posterPath: string | null
       posterUrl: string | null
       director: string | null
@@ -26,6 +34,12 @@ export type FilmEntryRow = {
       genres: string[]
       cast: string[]
     } | null
+    source?: FilmSource
+    sourceUrl?: string
+    legacyTags?: string[]
+    tmdbMatchStatus?: TmdbMatchStatus
+    tmdbReviewCandidate?: FilmEntry['metadata']['tmdbReviewCandidate']
+    tmdbReviewReason?: string
   }
 }
 

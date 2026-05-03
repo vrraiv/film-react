@@ -28,6 +28,14 @@ Personal film diary built with React, Vite, TypeScript, Supabase Auth, and Supab
    npm run dev
    ```
 
+For frontend-only work, `npm run dev` starts the raw Vite server. TMDb lookup uses Netlify Functions, so use Netlify Dev when testing TMDb locally:
+
+```bash
+npm run dev:netlify
+```
+
+Open the Netlify Dev URL, usually `http://localhost:8888`, not the raw Vite URL. Keep `TMDB_READ_ACCESS_TOKEN` server-side only; the TMDb Netlify Functions read it from `process.env.TMDB_READ_ACCESS_TOKEN`.
+
 Do not put a Supabase service role key in this app. Vite exposes `VITE_*` variables to browser code, so the frontend must use only the anon/public Supabase key.
 
 ## Supabase setup

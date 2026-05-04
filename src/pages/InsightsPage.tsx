@@ -6,6 +6,11 @@ import { useFilms } from '../hooks/useFilms'
 import { fetchPublicFilmEntries } from '../services/publicFilmProfileService'
 import type { FilmEntry } from '../types/film'
 
+type RewatchAggregate = {
+  total: number
+  count: number
+}
+
 const ratingBuckets = [...RATING_OPTIONS]
   .map((rating) => rating.value)
   .sort((left, right) => left - right)
@@ -60,7 +65,44 @@ export function InsightsPage() {
   }, [authLoading, user])
 
   const insights = useMemo(() => {
-    const ratedFilms = films.filter((film) => film.rating !== null)
+    const sortedFilms = [...films].sort((left, right) => {
+      const dateComparison = right.dateWatched.localeCompare(left.dateWatched)
+
+      if (dateComparison !== 0) {
+        return dateComparison
+      }
+
+      return right.metadata.dateLogged.localeCompare(left.metadata.dateLogged)
+    })
+
+    const groupsByTmdbId = new Map<string, FilmEntry[]>()
+
+    for (const film of sortedFilms) {
+      const tmdbId = film.metadata.tmdb?.id
+
+      if (tmdbId === null || tmdbId === undefined) {
+        continue
+      }
+
+      const key = `tmdb:${tmdbId}`
+      const existing = groupsByTmdbId.get(key) ?? []
+      groupsByTmdbId.set(key, [...existing, film])
+    }
+
+    const filmsForAverages = sortedFilms.filter((film) => {
+      const tmdbId = film.metadata.tmdb?.id
+
+      if (tmdbId === null || tmdbId === undefined) {
+        return true
+      }
+
+      const key = `tmdb:${tmdbId}`
+      const grouped = groupsByTmdbId.get(key)
+
+      return grouped?.[0]?.id === film.id
+    })
+
+    const ratedFilms = filmsForAverages.filter((film) => film.rating !== null)
     const averageRating = ratedFilms.length
       ? ratedFilms.reduce((sum, film) => sum + (film.rating ?? 0), 0) / ratedFilms.length
       : null
@@ -95,12 +137,49 @@ export function InsightsPage() {
       .sort((left, right) => right.averageRating - left.averageRating || right.appearances - left.appearances)
       .slice(0, 5)
 
+    const firstWatchCount = films.filter((film) => film.metadata.firstWatch === true).length
+
+    const rewatchGroups = [...groupsByTmdbId.values()].filter((logs) => logs.length > 1)
+
+    const firstWatchAverageTotals: RewatchAggregate = { total: 0, count: 0 }
+    const allWatchAverageTotals: RewatchAggregate = { total: 0, count: 0 }
+
+    for (const logs of rewatchGroups) {
+      const firstWatchLog = logs.find((log) => log.metadata.firstWatch === true && log.rating !== null)
+
+      if (firstWatchLog?.rating !== null && firstWatchLog?.rating !== undefined) {
+        firstWatchAverageTotals.total += firstWatchLog.rating
+        firstWatchAverageTotals.count += 1
+      }
+
+      for (const log of logs) {
+        if (log.rating !== null) {
+          allWatchAverageTotals.total += log.rating
+          allWatchAverageTotals.count += 1
+        }
+      }
+    }
+
+    const rewatchStats = {
+      filmsWithRewatches: rewatchGroups.length,
+      averageFirstWatch:
+        firstWatchAverageTotals.count > 0
+          ? firstWatchAverageTotals.total / firstWatchAverageTotals.count
+          : null,
+      averageAllWatches:
+        allWatchAverageTotals.count > 0
+          ? allWatchAverageTotals.total / allWatchAverageTotals.count
+          : null,
+    }
+
     return {
-      totalFilms: films.length,
+      totalFilmsLogged: films.length,
+      firstWatchCount,
       averageRating,
       ratingDistribution,
       maxRatingCount,
       topTagsByAverageRating,
+      rewatchStats,
     }
   }, [films])
 
@@ -118,8 +197,15 @@ export function InsightsPage() {
 
       <div className="shell-grid">
         <section className="shell-card">
-          <h3>Total films</h3>
-          <p className="page__copy">{isLoading ? 'Loading…' : insights.totalFilms.toString()}</p>
+          <h3>Film totals</h3>
+          {isLoading ? (
+            <p className="page__copy">Loading…</p>
+          ) : (
+            <ul className="insight-list">
+              <li>Total films logged: {insights.totalFilmsLogged}</li>
+              <li>First watches: {insights.firstWatchCount}</li>
+            </ul>
+          )}
         </section>
 
         <section className="shell-card">
@@ -170,6 +256,21 @@ export function InsightsPage() {
         </section>
 
         <section className="shell-card">
+          <h3>Rewatch stats</h3>
+          {isLoading ? (
+            <p className="page__copy">Loading…</p>
+          ) : insights.rewatchStats.filmsWithRewatches ? (
+            <ul className="insight-list">
+              <li>Films logged multiple times: {insights.rewatchStats.filmsWithRewatches}</li>
+              <li>Average first watch: {insights.rewatchStats.averageFirstWatch === null ? 'N/A' : `${insights.rewatchStats.averageFirstWatch.toFixed(1)} / 5`}</li>
+              <li>Average of all watches: {insights.rewatchStats.averageAllWatches === null ? 'N/A' : `${insights.rewatchStats.averageAllWatches.toFixed(1)} / 5`}</li>
+            </ul>
+          ) : (
+            <p className="page__copy">No rewatches with high-confidence TMDb matches yet.</p>
+          )}
+        </section>
+
+        <section className="shell-card">
           <h3>Top tags by average rating</h3>
           {isLoading ? (
             <p className="page__copy">Loading…</p>
@@ -186,6 +287,8 @@ export function InsightsPage() {
           )}
         </section>
       </div>
+
+      <p className="page__copy">All averages are calculated using the most recent log for a film, if it has been logged multiple times.</p>
     </section>
   )
 }

@@ -88,6 +88,7 @@ export function SettingsPage() {
 
       <section className="shell-card" aria-label="Tag diagnostics admin panel">
         <h3>Tag diagnostics (admin)</h3>
+        <p><Link to="/settings/taste-diagnostics">Open taste diagnostics →</Link></p>
         <p><Link to="/settings/tag-metadata">Open tag metadata editor →</Link></p>
         <p className="page__copy">Hidden from public routes. Use this to audit tag quality before recommendation work.</p>
 

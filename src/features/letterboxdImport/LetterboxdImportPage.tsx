@@ -1,6 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { useAuth } from '../../auth/useAuth'
-import { NotFoundPage } from '../../pages/NotFoundPage'
 import { TagInput } from '../../components/TagInput'
 import { useFilms } from '../../hooks/useFilms'
 import { createSupabaseFilmLogService } from '../../services/filmLogService'
@@ -11,7 +10,6 @@ import {
   type TmdbSearchResult,
 } from '../../services/tmdbService'
 import type { FilmEntry, FilmTmdbMetadata, TmdbMatchStatus } from '../../types/film'
-import { canUseLetterboxdImport } from './access'
 import { parseLetterboxdFiles } from './csv'
 import { importSelectedLetterboxdCandidates } from './importExecution'
 import {
@@ -188,14 +186,12 @@ const getTmdbErrorMessage = (error: unknown, title?: string) => {
 export function LetterboxdImportPage() {
   const { user } = useAuth()
   const userId = user?.id ?? null
-  const hasImportAccess = canUseLetterboxdImport(user)
   const filmLogService = useMemo(
     () => (userId ? createSupabaseFilmLogService(userId) : null),
     [userId],
   )
   const { films, isLoading, error, reloadFilms } = useFilms(
     filmLogService ?? undefined,
-    { enabled: hasImportAccess },
   )
   const [activeTab, setActiveTab] = useState<ImportAdminTab>('import')
   const [tmdbReviewFilter, setTmdbReviewFilter] = useState<TmdbReviewFilter>('all')
@@ -812,10 +808,6 @@ export function LetterboxdImportPage() {
       setBulkTmdbProgress(null)
       setIsBulkMatchingTmdb(false)
     }
-  }
-
-  if (!hasImportAccess) {
-    return <NotFoundPage />
   }
 
   return (

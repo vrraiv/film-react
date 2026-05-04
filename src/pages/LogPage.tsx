@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { FilmForm } from '../components/FilmForm'
 import { FilmList } from '../components/FilmList'
@@ -247,6 +248,18 @@ export function LogPage() {
 
       {localImportMessage ? <p className="status-message">{localImportMessage}</p> : null}
       {localImportError ? <p className="empty-state">{localImportError}</p> : null}
+
+      <section className="panel import-panel">
+        <div className="panel__header">
+          <h3 className="panel__title">Temporary helper: Letterboxd import tagging</h3>
+          <p className="page__copy">
+            Need to quickly tag imported backlog entries? Open the Letterboxd import review page.
+          </p>
+          <p className="meta">
+            <Link to="/admin/import/letterboxd">Go to Letterboxd import review</Link>
+          </p>
+        </div>
+      </section>
 
       <section className="panel import-panel">
         <div className="panel__header">

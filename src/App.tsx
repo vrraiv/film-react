@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
-import { appConfig } from './config/env'
 import { FilmDetailPage } from './pages/FilmDetailPage'
 import { HomePage } from './pages/HomePage'
 import { InsightsPage } from './pages/InsightsPage'
@@ -78,14 +77,12 @@ function App() {
         <Route path="film/:filmId" element={<FilmDetailPage />} />
         <Route
           path="admin/import/letterboxd"
-          element={appConfig.enableLetterboxdImport ? (
+          element={(
             <ProtectedRoute redirectTo="/login" preserveDestination>
               <Suspense fallback={<p className="empty-state">Loading import tool...</p>}>
                 <LetterboxdImportPage />
               </Suspense>
             </ProtectedRoute>
-          ) : (
-            <NotFoundPage />
           )}
         />
         <Route path="*" element={<NotFoundPage />} />

@@ -17,11 +17,24 @@ set tags = array(
 )
 where tags && array['tense', 'deadpan', 'austere'];
 
-update public.tag_metadata
-set tag_id = case tag_id
-  when 'tense' then 'suspenseful'
-  else tag_id
-end
+insert into public.tag_metadata (
+  user_id,
+  tag_id,
+  role,
+  override,
+  notes,
+  created_at,
+  updated_at
+)
+select
+  user_id,
+  'suspenseful' as tag_id,
+  role,
+  override,
+  notes,
+  created_at,
+  now()
+from public.tag_metadata
 where tag_id = 'tense'
 on conflict (user_id, tag_id)
 do update set
@@ -31,4 +44,4 @@ do update set
   updated_at = now();
 
 delete from public.tag_metadata
-where tag_id in ('deadpan', 'austere');
+where tag_id in ('tense', 'deadpan', 'austere');

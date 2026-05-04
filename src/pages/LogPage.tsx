@@ -196,6 +196,7 @@ export function LogPage() {
             posterUrl: details.posterUrl,
             director: details.director,
             runtime: details.runtime,
+            popularity: details.popularity,
             genres: details.genres,
             cast: details.cast,
           },

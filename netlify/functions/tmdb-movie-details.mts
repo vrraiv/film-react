@@ -58,6 +58,7 @@ export default async (request: Request) => {
     title: typeof movie.title === 'string' ? movie.title : 'Unknown title',
     releaseYear: typeof movie.release_date === 'string' ? Number(movie.release_date.slice(0, 4)) : null,
     runtime: typeof movie.runtime === 'number' ? movie.runtime : null,
+    popularity: typeof movie.popularity === 'number' ? movie.popularity : null,
     genres: Array.isArray(movie.genres)
       ? movie.genres
           .map((genre) => (genre && typeof genre === 'object' ? (genre as Record<string, unknown>).name : null))

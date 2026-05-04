@@ -30,7 +30,7 @@ export const appConfig = {
   publicBaseUrl: readEnv(import.meta.env.VITE_PUBLIC_BASE_URL, defaultOrigin),
   enableLetterboxdImport: readBooleanEnv(
     import.meta.env.VITE_ENABLE_LETTERBOXD_IMPORT,
-    import.meta.env.DEV,
+    true,
   ),
   letterboxdImportAdminEmails: readCsvEnv(
     import.meta.env.VITE_LETTERBOXD_IMPORT_ADMIN_EMAILS,

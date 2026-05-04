@@ -9,6 +9,7 @@ export type FilmTag = {
   id: string
   label: string
   category: TagCategoryId
+  description?: string
 }
 
 export type TagCategoryConfig = {
@@ -118,16 +119,19 @@ export const FILM_TAGS: FilmTag[] = [
   { id: 'spectacle-driven', label: 'Spectacle-Driven', category: 'style_craft' },
   { id: 'genre-crafted', label: 'Genre-Crafted', category: 'style_craft' },
   { id: 'family', label: 'Family', category: 'themes_subject' },
-  { id: 'marriage', label: 'Marriage', category: 'themes_subject' },
+  { id: 'relationships', label: 'Relationships', category: 'themes_subject', description: 'Romance, intimacy, courtship, breakup, marriage, desire, or relational conflict.' },
   { id: 'friendship', label: 'Friendship', category: 'themes_subject' },
   { id: 'coming_of_age', label: 'Coming of Age', category: 'themes_subject' },
+  { id: 'belonging', label: 'Belonging', category: 'themes_subject', description: 'Finding home, acceptance, community, kinship, cultural fit, or one’s place in the world.' },
   { id: 'class', label: 'Class', category: 'themes_subject' },
   { id: 'work', label: 'Work', category: 'themes_subject' },
-  { id: 'art_artists', label: 'Art / Artists', category: 'themes_subject' },
+  { id: 'money_capitalism', label: 'Money / Capitalism', category: 'themes_subject', description: 'Greed, consumerism, debt, markets, corporate life, commodification, or wealth pressure.' },
+  { id: 'art_creation', label: 'Art & Creation', category: 'themes_subject', description: 'Artists, filmmaking, music, writing, performance, creativity, ambition, or the cost of making art.' },
   { id: 'politics', label: 'Politics', category: 'themes_subject' },
   { id: 'religion', label: 'Religion', category: 'themes_subject' },
-  { id: 'nature', label: 'Nature', category: 'themes_subject' },
-  { id: 'environment', label: 'Environment', category: 'themes_subject' },
+  { id: 'power', label: 'Power', category: 'themes_subject', description: 'Control, domination, hierarchy, authority, coercion, status, or institutional force.' },
+  { id: 'wonder', label: 'Wonder', category: 'themes_subject', description: 'Awe, enchantment, magic, adventure, imagination, discovery, or entering a larger world.' },
+  { id: 'nature_environment', label: 'Nature / Environment', category: 'themes_subject', description: 'Wilderness, animals, landscape, ecology, climate, pollution, or humanity’s relationship with the natural world.' },
   { id: 'duty', label: 'Duty', category: 'themes_subject' },
   { id: 'trauma', label: 'Trauma', category: 'themes_subject' },
   { id: 'grief', label: 'Grief', category: 'themes_subject' },
@@ -139,7 +143,7 @@ export const FILM_TAGS: FilmTag[] = [
   { id: 'masculinity', label: 'Masculinity', category: 'themes_subject' },
   { id: 'parenthood', label: 'Parenthood', category: 'themes_subject' },
   { id: 'colonialism', label: 'Colonialism', category: 'themes_subject' },
-  { id: 'technology', label: 'Technology', category: 'themes_subject' },
+  { id: 'science_technology', label: 'Science / Technology', category: 'themes_subject', description: 'Technology, invention, science, machines, digital life, artificial intelligence, or technological change.' },
   { id: 'justice', label: 'Justice', category: 'themes_subject' },
   { id: 'character_study', label: 'Character Study', category: 'narrative_experience' },
   { id: 'mystery_driven', label: 'Mystery-Driven', category: 'narrative_experience' },

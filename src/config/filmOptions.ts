@@ -40,9 +40,26 @@ const legacyTagIdByNormalizedValue = new Map(
   }),
 )
 
+const SUBJECT_TAG_ID_MIGRATION: Record<string, string> = {
+  marriage: 'relationships',
+  art_artists: 'art_creation',
+  technology: 'science_technology',
+  nature: 'nature_environment',
+  environment: 'nature_environment',
+}
+
+const SUBJECT_TAG_LABEL_MIGRATION: Record<string, string> = {
+  marriage: 'relationships',
+  art_artists: 'art_creation',
+  technology: 'science_technology',
+  nature: 'nature_environment',
+  environment: 'nature_environment',
+}
+
 export const normalizeTag = (value: string) => {
   const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, '_')
-  return legacyTagIdByNormalizedValue.get(normalized) ?? ''
+  const migrated = SUBJECT_TAG_ID_MIGRATION[normalized] ?? SUBJECT_TAG_LABEL_MIGRATION[normalized] ?? normalized
+  return legacyTagIdByNormalizedValue.get(migrated) ?? ''
 }
 
 export const formatWatchContext = (value: WatchContext | '') =>

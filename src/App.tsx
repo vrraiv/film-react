@@ -11,6 +11,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TagMetadataPage } from './pages/TagMetadataPage'
+import { TasteDiagnosticsPage } from './pages/TasteDiagnosticsPage'
 import { PublicPreviewPage } from './pages/PublicPreviewPage'
 import { LoginPage } from './pages/auth/LoginPage'
 
@@ -49,6 +50,15 @@ function App() {
           element={(
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="settings/taste-diagnostics"
+          element={(
+            <ProtectedRoute>
+              <TasteDiagnosticsPage />
             </ProtectedRoute>
           )}
         />

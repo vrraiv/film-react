@@ -11,6 +11,7 @@ export type TmdbMovieDetails = {
   title: string
   releaseYear: number | null
   runtime: number | null
+  popularity: number | null
   genres: string[]
   director: string | null
   cast: string[]

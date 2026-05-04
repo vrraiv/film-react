@@ -15,6 +15,7 @@ export type FilmTmdbMetadata = {
   posterUrl: string | null
   director: string | null
   runtime: number | null
+  popularity?: number | null
   genres: string[]
   cast: string[]
   keywords?: string[]

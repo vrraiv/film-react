@@ -83,6 +83,7 @@ const parseMetadata = (value: unknown, legacyContext?: unknown): FilmMetadata =>
       posterUrl: typeof (record.tmdb as Record<string, unknown>).posterUrl === 'string' ? (record.tmdb as Record<string, unknown>).posterUrl as string : null,
       director: typeof (record.tmdb as Record<string, unknown>).director === 'string' ? (record.tmdb as Record<string, unknown>).director as string : null,
       runtime: typeof (record.tmdb as Record<string, unknown>).runtime === 'number' ? (record.tmdb as Record<string, unknown>).runtime as number : null,
+      popularity: typeof (record.tmdb as Record<string, unknown>).popularity === 'number' ? (record.tmdb as Record<string, unknown>).popularity as number : null,
       genres: Array.isArray((record.tmdb as Record<string, unknown>).genres) ? ((record.tmdb as Record<string, unknown>).genres as unknown[]).filter((item): item is string => typeof item === "string") : [],
       cast: Array.isArray((record.tmdb as Record<string, unknown>).cast) ? ((record.tmdb as Record<string, unknown>).cast as unknown[]).filter((item): item is string => typeof item === "string") : [],
     } : null,

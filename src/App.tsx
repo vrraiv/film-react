@@ -9,6 +9,7 @@ import { InsightsPage } from './pages/InsightsPage'
 import { LogPage } from './pages/LogPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
+import { PublicTastePage } from './pages/PublicTastePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TagMetadataPage } from './pages/TagMetadataPage'
 import { TasteDiagnosticsPage } from './pages/TasteDiagnosticsPage'
@@ -72,6 +73,7 @@ function App() {
           )}
         />
         <Route path="preview-public" element={<PublicPreviewPage />} />
+        <Route path="taste" element={<PublicTastePage />} />
         <Route path="v/:userId" element={<PublicProfilePage />} />
         <Route path="film/:filmId" element={<FilmDetailPage />} />
         <Route

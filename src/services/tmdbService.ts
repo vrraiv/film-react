@@ -18,6 +18,10 @@ export type TmdbMovieDetails = {
   posterUrl: string | null
 }
 
+export type TmdbMovieKeywords = {
+  keywords: string[]
+}
+
 export type TmdbServiceErrorCode =
   | 'function_unavailable'
   | 'request_failed'
@@ -84,3 +88,6 @@ export const searchTmdbMovies = async (
 
 export const fetchTmdbMovieDetails = async (movieId: number) =>
   request<TmdbMovieDetails>(`/.netlify/functions/tmdb-movie-details?movieId=${movieId}`)
+
+export const fetchTmdbMovieKeywords = async (movieId: number) =>
+  request<TmdbMovieKeywords>(`/.netlify/functions/tmdb-movie-keywords?movieId=${movieId}`)

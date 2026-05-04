@@ -1,5 +1,6 @@
 import type {
   FilmEntry,
+  FilmMetadataKeyword,
   FilmSource,
   OwnedMediaFormat,
   TmdbMatchStatus,
@@ -40,6 +41,7 @@ export type FilmEntryRow = {
     tmdbMatchStatus?: TmdbMatchStatus
     tmdbReviewCandidate?: FilmEntry['metadata']['tmdbReviewCandidate']
     tmdbReviewReason?: string
+    keywords?: FilmMetadataKeyword[]
   }
 }
 

@@ -15,15 +15,31 @@ set tags = array(
 )
 where tags && array['marriage', 'art_artists', 'technology', 'nature', 'environment'];
 
-update public.tag_metadata
-set tag_id = case tag_id
-  when 'marriage' then 'relationships'
-  when 'art_artists' then 'art_creation'
-  when 'technology' then 'science_technology'
-  when 'nature' then 'nature_environment'
-  when 'environment' then 'nature_environment'
-  else tag_id
-end
+insert into public.tag_metadata (
+  user_id,
+  tag_id,
+  role,
+  override,
+  notes,
+  created_at,
+  updated_at
+)
+select
+  user_id,
+  case tag_id
+    when 'marriage' then 'relationships'
+    when 'art_artists' then 'art_creation'
+    when 'technology' then 'science_technology'
+    when 'nature' then 'nature_environment'
+    when 'environment' then 'nature_environment'
+    else tag_id
+  end as tag_id,
+  role,
+  override,
+  notes,
+  created_at,
+  now()
+from public.tag_metadata
 where tag_id in ('marriage', 'art_artists', 'technology', 'nature', 'environment')
 on conflict (user_id, tag_id)
 do update set
@@ -31,3 +47,6 @@ do update set
   override = excluded.override,
   notes = coalesce(excluded.notes, public.tag_metadata.notes),
   updated_at = now();
+
+delete from public.tag_metadata
+where tag_id in ('marriage', 'art_artists', 'technology', 'nature', 'environment');

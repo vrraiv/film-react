@@ -10,6 +10,7 @@ import { LogPage } from './pages/LogPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TagMetadataPage } from './pages/TagMetadataPage'
 import { PublicPreviewPage } from './pages/PublicPreviewPage'
 import { LoginPage } from './pages/auth/LoginPage'
 
@@ -48,6 +49,15 @@ function App() {
           element={(
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="settings/tag-metadata"
+          element={(
+            <ProtectedRoute>
+              <TagMetadataPage />
             </ProtectedRoute>
           )}
         />

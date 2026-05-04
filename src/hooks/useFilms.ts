@@ -34,6 +34,7 @@ const defaultMetadata = (): FilmMetadata => ({
   ownedFormats: [],
   onWishlist: false,
   tmdb: null,
+  keywords: [],
 })
 
 const normalizeTags = (tags: string[] = []) =>

@@ -17,6 +17,12 @@ export type FilmTmdbMetadata = {
   runtime: number | null
   genres: string[]
   cast: string[]
+  keywords?: string[]
+}
+
+export type FilmMetadataKeyword = {
+  source: 'tmdb'
+  value: string
 }
 
 export type FilmSource = 'letterboxd'
@@ -41,6 +47,7 @@ export type FilmMetadata = {
   tmdbMatchStatus?: TmdbMatchStatus
   tmdbReviewCandidate?: FilmTmdbMetadata | null
   tmdbReviewReason?: string
+  keywords?: FilmMetadataKeyword[]
 }
 
 export type FilmEntry = {

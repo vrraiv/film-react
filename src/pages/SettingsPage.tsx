@@ -1,14 +1,42 @@
 import { Link } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useFilms } from '../hooks/useFilms'
 import { buildTagUsageSummary } from '../features/tagDiagnostics/tagDiagnostics'
+import { buildMetadataCompleteness, backfillTmdbKeywords, type KeywordBackfillResult } from '../services/tmdbKeywordEnrichmentService'
+import { useAuth } from '../auth/useAuth'
+import { createFilmLogService } from '../services/filmLogService'
 
 const ratioToPercent = (value: number | null) => (value === null ? '—' : `${(value * 100).toFixed(0)}%`)
 
 export function SettingsPage() {
-  const { films, isLoading, error } = useFilms()
+  const { films, isLoading, error, reloadFilms } = useFilms()
+  const { user } = useAuth()
+  const [isBackfilling, setIsBackfilling] = useState(false)
+  const [forceBackfill, setForceBackfill] = useState(false)
+  const [backfillResult, setBackfillResult] = useState<KeywordBackfillResult | null>(null)
+  const [progressLog, setProgressLog] = useState<string[]>([])
 
   const summary = useMemo(() => buildTagUsageSummary(films), [films])
+  const metadata = useMemo(() => buildMetadataCompleteness(films), [films])
+
+  const runBackfill = async () => {
+    if (!user) return
+
+    setIsBackfilling(true)
+    setBackfillResult(null)
+    setProgressLog([])
+
+    const service = createFilmLogService(user.id)
+    const result = await backfillTmdbKeywords(service, films, {
+      force: forceBackfill,
+      onProgress: (message) => {
+        setProgressLog((current) => [...current.slice(-199), message])
+      },
+    })
+    setBackfillResult(result)
+    await reloadFilms()
+    setIsBackfilling(false)
+  }
 
   return (
     <section className="page">
@@ -19,6 +47,44 @@ export function SettingsPage() {
           Film diary entries are stored in Supabase for authenticated users.
         </p>
       </header>
+
+      <section className="shell-card" aria-label="Tag diagnostics admin panel">
+        <h3>TMDb metadata enrichment (admin)</h3>
+        <p className="page__copy">Adds TMDb keywords as metadata only. Manual tags are untouched.</p>
+        <ul className="insight-list">
+          <li>Films logged: {metadata.totalLoggedFilms}</li>
+          <li>With TMDb ID: {metadata.withTmdbId}</li>
+          <li>With keywords: {metadata.withKeywords}</li>
+          <li>With genres: {metadata.withGenres}</li>
+          <li>With director: {metadata.withDirector}</li>
+          <li>With runtime: {metadata.withRuntime}</li>
+        </ul>
+        <label>
+          <input
+            type="checkbox"
+            checked={forceBackfill}
+            onChange={(event) => setForceBackfill(event.target.checked)}
+            disabled={isBackfilling}
+          />{' '}
+          Force refresh movies that already have TMDb keywords
+        </label>
+        <p>
+          <button type="button" onClick={() => void runBackfill()} disabled={isBackfilling || !user}>
+            {isBackfilling ? 'Backfilling TMDb keywords…' : 'Run TMDb keyword backfill'}
+          </button>
+        </p>
+        {backfillResult ? (
+          <p className="page__copy">
+            Updated {backfillResult.updated}, failed {backfillResult.failed}, skipped missing TMDb ID {backfillResult.skippedMissingTmdbId}, skipped already enriched {backfillResult.skippedAlreadyEnriched}.
+          </p>
+        ) : null}
+        {progressLog.length > 0 ? (
+          <pre style={{ maxHeight: 220, overflow: 'auto', fontSize: '0.8rem' }}>
+            {progressLog.join('\n')}
+          </pre>
+        ) : null}
+
+      </section>
 
       <section className="shell-card" aria-label="Tag diagnostics admin panel">
         <h3>Tag diagnostics (admin)</h3>

@@ -34,7 +34,7 @@ export function LoginPage() {
     <section className="panel auth-panel" aria-labelledby="login-title">
       <div className="panel__header">
         <h2 className="panel__title" id="login-title">Sign in</h2>
-        <p className="meta">Use your Supabase email and password to access your log.</p>
+        <p className="meta">Sign in to see your diary, save new entries, and pick up where you left off.</p>
       </div>
 
       {error ? <p className="status-message status-message--error">{error}</p> : null}
@@ -63,7 +63,7 @@ export function LoginPage() {
         </label>
 
         <button className="button-primary" type="submit" disabled={isSubmitting || loading}>
-          {isSubmitting ? 'Signing in...' : 'Sign in'}
+          {isSubmitting ? 'Signing you in...' : 'Sign in'}
         </button>
       </form>
     </section>

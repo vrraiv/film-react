@@ -8,6 +8,7 @@
     "dev:netlify": "netlify dev",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "postinstall": "node scripts/patch-http-proxy-deprecation.cjs",
     "preview": "vite preview"
   },
   "dependencies": {

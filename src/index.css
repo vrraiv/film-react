@@ -525,6 +525,7 @@ button {
 .film-card__details {
   display: grid;
   gap: var(--space-9);
+  min-width: 0;
 }
 
 .film-card__header {
@@ -582,6 +583,19 @@ button {
   gap: var(--space-5);
 }
 
+.tag-row--readonly {
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.tag-row--readonly-expanded {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
 .tag-chip,
 .meta-pill,
 .check-pill {
@@ -611,6 +625,34 @@ button {
 
 .tag-chip--static {
   cursor: default;
+}
+
+.tag-row--readonly .tag-chip--static {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 10rem;
+  min-height: 1.45rem;
+  padding: 0.1rem 0.45rem;
+  overflow: hidden;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-row--readonly .tag-chip--overflow {
+  flex: 0 0 auto;
+}
+
+.tag-row--readonly .tag-chip--toggle {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.tag-row--readonly .tag-chip--toggle:hover,
+.tag-row--readonly .tag-chip--toggle:focus-visible {
+  border-color: var(--accent-line);
+  color: var(--accent-strong);
 }
 
 .tag-chip__remove {

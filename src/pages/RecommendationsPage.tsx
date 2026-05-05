@@ -35,6 +35,7 @@ const runtimeLabels: Record<RuntimeFilter, string> = {
   long: 'Over 130 min',
 }
 
+const readonlyTagLimit = 5
 const scorePct = (value: number) => `${Math.round(value * 100)}`
 
 const configFieldLabels: Array<{
@@ -367,6 +368,11 @@ function RecommenderConfigPanel({
 }
 
 function RecommendationCard({ recommendation }: { recommendation: FilmRecommendation }) {
+  const [isGenreListExpanded, setIsGenreListExpanded] = useState(false)
+  const visibleGenres = isGenreListExpanded ? recommendation.genres : recommendation.genres.slice(0, readonlyTagLimit)
+  const hiddenGenreCount = Math.max(0, recommendation.genres.length - readonlyTagLimit)
+  const genreListLabel = recommendation.genres.join(', ')
+
   return (
     <article className="film-card recommendation-card">
       <div className="film-card__content">
@@ -401,8 +407,23 @@ function RecommendationCard({ recommendation }: { recommendation: FilmRecommenda
           </div>
 
           {recommendation.genres.length > 0 ? (
-            <div className="tag-row">
-              {recommendation.genres.slice(0, 5).map((genre) => <span className="tag-chip tag-chip--static" key={genre}>{genre}</span>)}
+            <div
+              className={`tag-row tag-row--readonly${isGenreListExpanded ? ' tag-row--readonly-expanded' : ''}`}
+              aria-label={`Genres: ${genreListLabel}`}
+              title={genreListLabel}
+            >
+              {visibleGenres.map((genre) => <span className="tag-chip tag-chip--static" key={genre}>{genre}</span>)}
+              {hiddenGenreCount > 0 ? (
+                <button
+                  className="tag-chip tag-chip--static tag-chip--overflow tag-chip--toggle"
+                  type="button"
+                  aria-expanded={isGenreListExpanded}
+                  aria-label={isGenreListExpanded ? 'Collapse genres' : `Show ${hiddenGenreCount} more genres`}
+                  onClick={() => setIsGenreListExpanded((current) => !current)}
+                >
+                  {isGenreListExpanded ? 'Less' : `+${hiddenGenreCount}`}
+                </button>
+              ) : null}
             </div>
           ) : null}
 

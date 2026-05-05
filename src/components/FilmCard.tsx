@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import {
   formatOwnedMedia,
   formatWatchContext,
@@ -21,6 +22,7 @@ const formatDate = (value: string) =>
   }).format(new Date(`${value}T00:00:00`))
 
 const getTmdbMetadata = (film: FilmEntry) => film.tmdbMetadata ?? film.metadata.tmdb
+const readonlyTagLimit = 5
 
 export function FilmCard({
   film,
@@ -33,6 +35,11 @@ export function FilmCard({
   const tmdb = getTmdbMetadata(film)
   const displayTitle = film.title
   const director = tmdb?.director?.trim() || null
+  const [isTagListExpanded, setIsTagListExpanded] = useState(false)
+  const formattedTags = film.tags.map((tag) => ({ id: tag, label: formatFilmTag(tag) }))
+  const visibleTags = isTagListExpanded ? formattedTags : formattedTags.slice(0, readonlyTagLimit)
+  const hiddenTagCount = Math.max(0, formattedTags.length - readonlyTagLimit)
+  const tagListLabel = formattedTags.map((tag) => tag.label).join(', ')
 
   return (
     <article className="film-card" key={film.id}>
@@ -65,12 +72,27 @@ export function FilmCard({
           </header>
 
           {film.tags.length > 0 ? (
-            <div className="tag-row">
-              {film.tags.map((tag) => (
-                <span className="tag-chip tag-chip--static" key={tag}>
-                  {formatFilmTag(tag)}
+            <div
+              className={`tag-row tag-row--readonly${isTagListExpanded ? ' tag-row--readonly-expanded' : ''}`}
+              aria-label={`Tags: ${tagListLabel}`}
+              title={tagListLabel}
+            >
+              {visibleTags.map((tag) => (
+                <span className="tag-chip tag-chip--static" key={tag.id}>
+                  {tag.label}
                 </span>
               ))}
+              {hiddenTagCount > 0 ? (
+                <button
+                  className="tag-chip tag-chip--static tag-chip--overflow tag-chip--toggle"
+                  type="button"
+                  aria-expanded={isTagListExpanded}
+                  aria-label={isTagListExpanded ? 'Collapse tags' : `Show ${hiddenTagCount} more tags`}
+                  onClick={() => setIsTagListExpanded((current) => !current)}
+                >
+                  {isTagListExpanded ? 'Less' : `+${hiddenTagCount}`}
+                </button>
+              ) : null}
             </div>
           ) : null}
 

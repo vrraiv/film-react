@@ -4,10 +4,10 @@ export function NotFoundPage() {
   return (
     <section className="page">
       <header className="page__hero">
-        <span className="eyebrow">Missing page</span>
-        <h2 className="page__title">This route is not part of the tracker yet.</h2>
+        <span className="eyebrow">Not found</span>
+        <h2 className="page__title">We couldn't find that screen.</h2>
         <p className="page__copy">
-          Head back to the main routes while we keep building out the app.
+          Try heading back home and choosing a section from there.
         </p>
         <Link className="button-primary" to="/">
           Go home

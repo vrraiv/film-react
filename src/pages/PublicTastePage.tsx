@@ -27,7 +27,7 @@ export function PublicTastePage() {
         if (isMounted) setFilms(nextFilms)
       } catch (loadError) {
         console.error(loadError)
-        if (isMounted) setError('We could not load public taste modules right now.')
+        if (isMounted) setError('We could not load this shared watch guide right now.')
       } finally {
         if (isMounted) setIsLoading(false)
       }
@@ -45,9 +45,9 @@ export function PublicTastePage() {
   return (
     <section className="page">
       <header className="page__hero">
-        <span className="eyebrow">Public taste browser</span>
-        <h2 className="page__title">Taste profile from watched and rated films only.</h2>
-        <p className="page__copy">Deterministic modules for friends and visitors. No unseen-movie recommendations.</p>
+        <span className="eyebrow">Shared picks</span>
+        <h2 className="page__title">Find favorites grouped by mood, length, and style.</h2>
+        <p className="page__copy">Use the filters to explore highlights from films that were already watched and rated.</p>
         <div className="filter-grid filter-grid--compact">
           <div className="field">
             <label htmlFor="tasteTag">Mood / tag</label>
@@ -71,33 +71,33 @@ export function PublicTastePage() {
           </div>
         </div>
       </header>
-      {isLoading ? <p className="empty-state">Loading taste browser...</p> : null}
+      {isLoading ? <p className="empty-state">Loading shared picks...</p> : null}
       {error ? <p className="empty-state">{error}</p> : null}
 
       {!isLoading && !error ? (
         <>
           <TasteSection title="Starter Pack" items={browser.starterPack} />
           <TasteSection title="Personal Canon" items={browser.personalCanon} />
-          <TasteSection title="Best by Mood / Tag" items={browser.bestByMoodOrTag} />
+          <TasteSection title="Best by Mood" items={browser.bestByMoodOrTag} />
           {browser.deepCutsDataAvailable ? (
             <TasteSection title="Deep Cuts I Liked" items={browser.deepCuts} />
           ) : (
             <section className="panel">
               <h3>Deep Cuts I Liked</h3>
-              <p className="meta">No TMDB popularity values are available yet for the current filter set.</p>
+              <p className="meta">There is not enough popularity information for this filter yet.</p>
             </section>
           )}
           <TasteSection title="Not For Everyone" items={browser.notForEveryone} />
           <section className="panel">
             <h3>If You Like This, Try This From My Diary</h3>
             <div className="field">
-              <label htmlFor="seedFilm">Pick a logged film</label>
+              <label htmlFor="seedFilm">Pick a film from the diary</label>
               <select id="seedFilm" value={selectedFilmId} onChange={(event) => setSelectedFilmId(event.target.value)}>
                 <option value="">Choose a film</option>
                 {browser.filtered.map((film) => <option key={film.id} value={film.id}>{film.title}</option>)}
               </select>
             </div>
-            {selectedFilmId ? <TasteSection title="Related logged films" items={related} /> : null}
+            {selectedFilmId ? <TasteSection title="You might also like from this diary" items={related} /> : null}
           </section>
         </>
       ) : null}
@@ -109,7 +109,7 @@ function TasteSection({ title, items }: { title: string; items: Array<{ film: Fi
   return (
     <section className="panel">
       <h3>{title}</h3>
-      {items.length === 0 ? <p className="empty-state">No matching logged films for current filters.</p> : null}
+      {items.length === 0 ? <p className="empty-state">No films match these filters yet.</p> : null}
       <div className="film-list">
         {items.map((item) => (
           <div key={item.film.id}>

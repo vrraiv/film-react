@@ -41,7 +41,7 @@ export function TagMetadataPage() {
         }
       } catch (loadError) {
         if (mounted) {
-          setError(loadError instanceof Error ? loadError.message : 'Could not load tag metadata.')
+          setError(loadError instanceof Error ? loadError.message : 'Could not load your tag settings.')
         }
       }
     }
@@ -76,7 +76,7 @@ export function TagMetadataPage() {
       await upsertTagMetadata(user.id, nextMetadata)
       setMetadata((prev) => ({ ...prev, [nextMetadata.tagId]: nextMetadata }))
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not save tag metadata.')
+      setError(saveError instanceof Error ? saveError.message : 'Could not save those tag updates.')
     } finally {
       setIsSavingTag(null)
     }
@@ -86,8 +86,8 @@ export function TagMetadataPage() {
     <section className="page">
       <header className="page__hero">
         <span className="eyebrow">Admin</span>
-        <h2 className="page__title">Tag metadata</h2>
-        <p className="page__copy">Edit modelling role/override while auditing tag quality. Unknown tags are flagged for review.</p>
+        <h2 className="page__title">Tag notes and labels</h2>
+        <p className="page__copy">Adjust how each tag should be treated, and review tags that need attention.</p>
         <p><Link to="/settings">← Back to settings</Link></p>
       </header>
       {error ? <p className="empty-state">{error}</p> : null}

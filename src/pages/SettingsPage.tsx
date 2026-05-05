@@ -42,15 +42,15 @@ export function SettingsPage() {
     <section className="page">
       <header className="page__hero">
         <span className="eyebrow">Settings</span>
-        <h2 className="page__title">Supabase is the source of truth.</h2>
+        <h2 className="page__title">Manage your diary tools and review options.</h2>
         <p className="page__copy">
-          Film diary entries are stored in Supabase for authenticated users.
+          Use this area to keep your diary information complete and organized.
         </p>
       </header>
 
       <section className="shell-card" aria-label="Tag diagnostics admin panel">
-        <h3>TMDb metadata enrichment (admin)</h3>
-        <p className="page__copy">Adds TMDb keywords as metadata only. Manual tags are untouched.</p>
+        <h3>Extra movie details</h3>
+        <p className="page__copy">Add extra movie details to your diary entries without changing your own tags.</p>
         <ul className="insight-list">
           <li>Films logged: {metadata.totalLoggedFilms}</li>
           <li>With TMDb ID: {metadata.withTmdbId}</li>
@@ -66,11 +66,11 @@ export function SettingsPage() {
             onChange={(event) => setForceBackfill(event.target.checked)}
             disabled={isBackfilling}
           />{' '}
-          Force refresh movies that already have TMDb keywords
+          Refresh entries that already have extra details
         </label>
         <p>
           <button type="button" onClick={() => void runBackfill()} disabled={isBackfilling || !user}>
-            {isBackfilling ? 'Backfilling TMDb keywords…' : 'Run TMDb keyword backfill'}
+            {isBackfilling ? 'Adding extra details…' : 'Add extra details now'}
           </button>
         </p>
         {backfillResult ? (
@@ -86,12 +86,12 @@ export function SettingsPage() {
 
       </section>
 
-      <section className="shell-card" aria-label="Tag diagnostics admin panel">
-        <h3>Tag diagnostics (admin)</h3>
-        <p><Link to="/settings/taste-diagnostics">Open taste diagnostics →</Link></p>
-        <p><Link to="/settings/tag-metadata">Open tag metadata editor →</Link></p>
+      <section className="shell-card" aria-label="Tag review panel">
+        <h3>Tag review</h3>
+        <p><Link to="/settings/taste-diagnostics">Open taste review →</Link></p>
+        <p><Link to="/settings/tag-metadata">Open tag notes editor →</Link></p>
         <p><Link to="/settings/recommender-config">Open recommender config →</Link></p>
-        <p className="page__copy">Hidden from public routes. Use this to audit tag quality before recommendation work.</p>
+        <p className="page__copy">Review how your tags are being used and spot anything that needs cleanup.</p>
 
         {error ? <p className="empty-state">{error}</p> : null}
         {isLoading ? <p className="page__copy">Loading…</p> : null}

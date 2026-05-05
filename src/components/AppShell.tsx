@@ -5,7 +5,7 @@ import { appConfig } from '../config/env'
 const publicNavItems = [
   { to: '/', label: 'Film Diary' },
   { to: '/insights', label: 'Insights' },
-  { to: '/taste', label: 'Taste Browser' },
+  { to: '/taste', label: 'Shared Picks' },
 ]
 
 const authenticatedNavItems = [
@@ -13,7 +13,7 @@ const authenticatedNavItems = [
   { to: '/log', label: 'Log' },
   { to: '/recommendations', label: 'Recommendations' },
   { to: '/insights', label: 'Insights' },
-  { to: '/taste', label: 'Taste Browser' },
+  { to: '/taste', label: 'Shared Picks' },
   { to: '/', label: 'Film Diary' },
 ]
 

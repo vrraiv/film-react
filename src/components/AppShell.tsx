@@ -11,6 +11,7 @@ const publicNavItems = [
 const authenticatedNavItems = [
   { to: '/home', label: 'Home' },
   { to: '/log', label: 'Log' },
+  { to: '/recommendations', label: 'Recommendations' },
   { to: '/insights', label: 'Insights' },
   { to: '/taste', label: 'Taste Browser' },
   { to: '/', label: 'Film Diary' },

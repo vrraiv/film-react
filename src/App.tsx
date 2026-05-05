@@ -9,6 +9,8 @@ import { LogPage } from './pages/LogPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
 import { PublicTastePage } from './pages/PublicTastePage'
+import { RecommendationsPage } from './pages/RecommendationsPage'
+import { RecommenderConfigPage } from './pages/RecommenderConfigPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TagMetadataPage } from './pages/TagMetadataPage'
 import { TasteDiagnosticsPage } from './pages/TasteDiagnosticsPage'
@@ -46,6 +48,14 @@ function App() {
         />
         <Route path="insights" element={<InsightsPage />} />
         <Route
+          path="recommendations"
+          element={(
+            <ProtectedRoute>
+              <RecommendationsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
           path="settings"
           element={(
             <ProtectedRoute>
@@ -68,6 +78,14 @@ function App() {
           element={(
             <ProtectedRoute>
               <TagMetadataPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="settings/recommender-config"
+          element={(
+            <ProtectedRoute>
+              <RecommenderConfigPage />
             </ProtectedRoute>
           )}
         />

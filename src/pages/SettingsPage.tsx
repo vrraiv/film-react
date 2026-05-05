@@ -90,6 +90,7 @@ export function SettingsPage() {
         <h3>Tag diagnostics (admin)</h3>
         <p><Link to="/settings/taste-diagnostics">Open taste diagnostics →</Link></p>
         <p><Link to="/settings/tag-metadata">Open tag metadata editor →</Link></p>
+        <p><Link to="/settings/recommender-config">Open recommender config →</Link></p>
         <p className="page__copy">Hidden from public routes. Use this to audit tag quality before recommendation work.</p>
 
         {error ? <p className="empty-state">{error}</p> : null}

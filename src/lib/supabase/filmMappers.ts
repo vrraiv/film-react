@@ -31,9 +31,12 @@ export type FilmEntryRow = {
       posterPath: string | null
       posterUrl: string | null
       director: string | null
+      writers?: string[]
       runtime: number | null
       genres: string[]
       cast: string[]
+      countries?: string[]
+      languages?: string[]
     } | null
     source?: FilmSource
     sourceUrl?: string

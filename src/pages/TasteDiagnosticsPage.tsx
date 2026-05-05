@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { loadStoredRecommenderConfig } from '../features/recommendations/recommenderConfigStorage'
 import { buildTasteProfile, type FeatureClassification, type FeatureStats, type TasteFeatureType } from '../features/tasteProfile/tasteProfile'
 import { useFilms } from '../hooks/useFilms'
 
@@ -22,16 +23,17 @@ const classificationLabels: Record<FeatureClassification, string> = {
   possible_avoid: 'Possible-avoid',
 }
 
-const formatPct = (value: number | null) => (value === null ? '—' : `${(value * 100).toFixed(0)}%`)
-const formatScore = (value: number | null) => (value === null ? '—' : value.toFixed(2))
+const formatPct = (value: number | null) => (value === null ? '-' : `${(value * 100).toFixed(0)}%`)
+const formatScore = (value: number | null) => (value === null ? '-' : value.toFixed(2))
 
 export function TasteDiagnosticsPage() {
   const { films, isLoading, error } = useFilms()
   const [featureTypeFilter, setFeatureTypeFilter] = useState<'all' | TasteFeatureType>('all')
   const [classificationFilter, setClassificationFilter] = useState<'all' | FeatureClassification>('all')
   const [minimumCount, setMinimumCount] = useState(1)
+  const [recommenderConfig] = useState(() => loadStoredRecommenderConfig())
 
-  const tasteProfile = useMemo(() => buildTasteProfile(films), [films])
+  const tasteProfile = useMemo(() => buildTasteProfile(films, recommenderConfig), [films, recommenderConfig])
 
   const filtered = useMemo(() => tasteProfile.features.filter((feature) => {
     if (featureTypeFilter !== 'all' && feature.feature.type !== featureTypeFilter) return false
@@ -54,12 +56,12 @@ export function TasteDiagnosticsPage() {
         <span className="eyebrow">Taste diagnostics</span>
         <h2 className="page__title">Signal audit for future recommendations</h2>
         <p className="page__copy">
-          This is a private diagnostics view. It does not recommend movies yet; it surfaces strengths and false signals before recommendation UI work begins.
+          This is a private diagnostics view. It surfaces strengths and false signals using the active recommender config.
         </p>
       </header>
 
       {error ? <section className="shell-card"><p className="empty-state">Could not load diagnostics data: {error}</p></section> : null}
-      {isLoading ? <section className="shell-card"><p className="page__copy">Loading taste diagnostics…</p></section> : null}
+      {isLoading ? <section className="shell-card"><p className="page__copy">Loading taste diagnostics...</p></section> : null}
 
       {!isLoading && !error ? (
         <>
@@ -85,7 +87,7 @@ export function TasteDiagnosticsPage() {
                 <input type="number" min={1} value={minimumCount} onChange={(event) => setMinimumCount(Math.max(1, Number(event.target.value) || 1))} />
               </label>
             </div>
-            <p className="page__copy">Showing {filtered.length} of {tasteProfile.features.length} learned features from {tasteProfile.totalFilms} films.</p>
+            <p className="page__copy">Showing {filtered.length} of {tasteProfile.features.length} learned features from {tasteProfile.totalFilms} films. Positive threshold: {recommenderConfig.ratingPositiveThreshold.toFixed(1)}.</p>
           </section>
 
           <section className="shell-card">
@@ -117,7 +119,7 @@ function FeatureMapTable({ features }: { features: FeatureStats[] }) {
       <table>
         <thead>
           <tr>
-            <th>Feature label</th><th>Feature type</th><th>Count</th><th>Affinity score</th><th>Average rating</th><th>Hit rate ≥ 4.0</th><th>Hit rate ≥ 4.5</th><th>Residual mean</th><th>Residual variance</th><th>Risk score</th><th>Confidence score</th><th>Classification</th>
+            <th>Feature label</th><th>Feature type</th><th>Count</th><th>Affinity score</th><th>Average rating</th><th>Hit rate positive</th><th>Hit rate strong</th><th>Residual mean</th><th>Residual variance</th><th>Risk score</th><th>Confidence score</th><th>Override</th><th>Classification</th>
           </tr>
         </thead>
         <tbody>
@@ -134,6 +136,7 @@ function FeatureMapTable({ features }: { features: FeatureStats[] }) {
               <td>{formatScore(feature.residualVariance)}</td>
               <td>{formatScore(feature.riskScore)}</td>
               <td>{formatScore(feature.confidenceScore)}</td>
+              <td>{feature.override ?? 'Default'}</td>
               <td>{classificationLabels[feature.classification]}</td>
             </tr>
           ))}
@@ -149,5 +152,5 @@ function ZoneCard({ title, items }: { title: string; items: FeatureStats[] }) {
 
 function FeaturePills({ items }: { items: FeatureStats[] }) {
   if (items.length === 0) return <p className="empty-state">No matching features in this section.</p>
-  return <ul className="insight-list">{items.map((feature) => <li key={`${feature.feature.type}:${feature.feature.key}`}>{feature.feature.key} · {featureTypeLabels[feature.feature.type]} · count {feature.count} · confidence {feature.confidenceScore.toFixed(2)}</li>)}</ul>
+  return <ul className="insight-list">{items.map((feature) => <li key={`${feature.feature.type}:${feature.feature.key}`}>{feature.feature.key} - {featureTypeLabels[feature.feature.type]} - count {feature.count} - confidence {feature.confidenceScore.toFixed(2)}</li>)}</ul>
 }

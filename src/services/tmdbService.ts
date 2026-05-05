@@ -6,15 +6,33 @@ export type TmdbSearchResult = {
   overview?: string
 }
 
+export type TmdbCandidateSource = 'recommendations' | 'similar' | 'discover'
+
+export type TmdbCandidateResult = {
+  id: number
+  title: string
+  releaseDate: string | null
+  posterPath: string | null
+  posterUrl: string | null
+  genreIds: number[]
+  popularity: number | null
+  voteAverage: number | null
+  source: TmdbCandidateSource
+}
+
 export type TmdbMovieDetails = {
   id: number
   title: string
   releaseYear: number | null
   runtime: number | null
   popularity: number | null
+  voteAverage: number | null
   genres: string[]
   director: string | null
+  writers: string[]
   cast: string[]
+  countries: string[]
+  languages: string[]
   posterPath: string | null
   posterUrl: string | null
 }
@@ -75,6 +93,17 @@ const request = async <T>(path: string): Promise<T> => {
   return response.json() as Promise<T>
 }
 
+const requestCache = new Map<string, Promise<unknown>>()
+
+const cachedRequest = async <T>(path: string): Promise<T> => {
+  const cached = requestCache.get(path)
+  if (cached) return cached as Promise<T>
+
+  const nextRequest = request<T>(path)
+  requestCache.set(path, nextRequest)
+  return nextRequest
+}
+
 export const searchTmdbMovies = async (
   query: string,
   options: { year?: number | null } = {},
@@ -88,7 +117,20 @@ export const searchTmdbMovies = async (
 }
 
 export const fetchTmdbMovieDetails = async (movieId: number) =>
-  request<TmdbMovieDetails>(`/.netlify/functions/tmdb-movie-details?movieId=${movieId}`)
+  cachedRequest<TmdbMovieDetails>(`/.netlify/functions/tmdb-movie-details?movieId=${movieId}`)
 
 export const fetchTmdbMovieKeywords = async (movieId: number) =>
-  request<TmdbMovieKeywords>(`/.netlify/functions/tmdb-movie-keywords?movieId=${movieId}`)
+  cachedRequest<TmdbMovieKeywords>(`/.netlify/functions/tmdb-movie-keywords?movieId=${movieId}`)
+
+export const fetchTmdbMovieCandidates = async (
+  movieId: number,
+  source: Exclude<TmdbCandidateSource, 'discover'>,
+) =>
+  cachedRequest<{ results: TmdbCandidateResult[] }>(
+    `/.netlify/functions/tmdb-movie-candidates?movieId=${movieId}&source=${source}`,
+  )
+
+export const discoverTmdbMovies = async (genreIds: number[]) =>
+  cachedRequest<{ results: TmdbCandidateResult[] }>(
+    `/.netlify/functions/tmdb-discover-movies?genreIds=${encodeURIComponent(genreIds.join(','))}`,
+  )

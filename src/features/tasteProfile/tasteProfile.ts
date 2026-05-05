@@ -1,4 +1,11 @@
 import type { FilmEntry } from '../../types/film'
+import {
+  DEFAULT_RECOMMENDER_CONFIG,
+  getFeatureOverride,
+  isSelectionFeature,
+  type RecommenderConfig,
+  type RecommenderFeatureOverride,
+} from '../recommendations/recommenderConfig'
 
 export type RatingDistributionBucket = {
   rating: number
@@ -53,6 +60,8 @@ export type FeatureStats = {
   confidenceScore: number
   classification: FeatureClassification
   metadataCompleteness: number
+  override: RecommenderFeatureOverride | null
+  overrideImpact: string | null
 }
 
 export type TasteProfile = {
@@ -129,7 +138,91 @@ type Aggregate = {
   metadataHits: number
 }
 
-export const buildTasteProfile = (films: FilmEntry[]): TasteProfile => {
+const applyFeatureOverride = (input: {
+  feature: TasteFeatureOccurrence
+  affinityScore: number
+  expectedSatisfactionScore: number
+  riskScore: number
+  confidenceScore: number
+  config: RecommenderConfig
+}) => {
+  const override = getFeatureOverride(input.feature, input.config)
+  const featureWeight = input.config.featureWeights[input.feature.type] ?? 1
+  const weightedAffinity = clamp01(input.affinityScore * featureWeight)
+
+  if (override === 'ignore') {
+    return {
+      affinityScore: 0,
+      expectedSatisfactionScore: 0.5,
+      riskScore: 0,
+      confidenceScore: 0,
+      override,
+      overrideImpact: 'Ignored by manual recommender override.',
+    }
+  }
+
+  if (override === 'seek') {
+    return {
+      affinityScore: clamp01(Math.max(weightedAffinity, 0.78)),
+      expectedSatisfactionScore: clamp01(Math.max(input.expectedSatisfactionScore, 0.76) + 0.08),
+      riskScore: clamp01(input.riskScore * 0.72),
+      confidenceScore: clamp01(input.confidenceScore + 0.12),
+      override,
+      overrideImpact: 'Seek override raised affinity and confidence.',
+    }
+  }
+
+  if (override === 'like_when_done_well') {
+    return {
+      affinityScore: clamp01(Math.max(weightedAffinity, 0.65)),
+      expectedSatisfactionScore: clamp01(input.expectedSatisfactionScore + 0.04),
+      riskScore: clamp01(Math.max(input.riskScore, 0.38)),
+      confidenceScore: clamp01(input.confidenceScore + 0.06),
+      override,
+      overrideImpact: 'Like-when-done-well override kept upside but preserved risk.',
+    }
+  }
+
+  if (override === 'neutral') {
+    return {
+      affinityScore: clamp01(weightedAffinity * 0.55),
+      expectedSatisfactionScore: clamp01(input.expectedSatisfactionScore * 0.75 + 0.5 * 0.25),
+      riskScore: clamp01(input.riskScore * 0.65),
+      confidenceScore: input.confidenceScore,
+      override,
+      overrideImpact: 'Neutral override reduced this feature as a recommender signal.',
+    }
+  }
+
+  if (override === 'avoid') {
+    const penalty = isSelectionFeature(input.feature.type)
+      ? input.config.maxNegativePenaltyForSelectionFeatures
+      : 0.34
+
+    return {
+      affinityScore: clamp01(weightedAffinity * 0.32),
+      expectedSatisfactionScore: clamp01(input.expectedSatisfactionScore - penalty),
+      riskScore: clamp01(input.riskScore + penalty),
+      confidenceScore: clamp01(input.confidenceScore + 0.08),
+      override,
+      overrideImpact: `Avoid override applied a ${penalty.toFixed(2)} satisfaction penalty.`,
+    }
+  }
+
+  return {
+    affinityScore: weightedAffinity,
+    expectedSatisfactionScore: input.expectedSatisfactionScore,
+    riskScore: input.riskScore,
+    confidenceScore: input.confidenceScore,
+    override,
+    overrideImpact: null,
+  }
+}
+
+export const buildTasteProfile = (
+  films: FilmEntry[],
+  config: RecommenderConfig = DEFAULT_RECOMMENDER_CONFIG,
+): TasteProfile => {
   const baseline = calculateBaselineRatingStats(films)
   const globalAverage = baseline.averageRating ?? 3.5
   const totalFilms = films.length
@@ -160,8 +253,8 @@ export const buildTasteProfile = (films: FilmEntry[]): TasteProfile => {
   const features = [...aggregateByFeature.values()].map(({ feature, agg }): FeatureStats => {
     const ratedCount = agg.ratings.length
     const averageRating = ratedCount > 0 ? agg.ratings.reduce((s, r) => s + r, 0) / ratedCount : null
-    const hitRateAtLeast4 = ratedCount > 0 ? agg.ratings.filter((r) => r >= 4).length / ratedCount : null
-    const hitRateAtLeast45 = ratedCount > 0 ? agg.ratings.filter((r) => r >= 4.5).length / ratedCount : null
+    const hitRateAtLeast4 = ratedCount > 0 ? agg.ratings.filter((r) => r >= config.ratingPositiveThreshold).length / ratedCount : null
+    const hitRateAtLeast45 = ratedCount > 0 ? agg.ratings.filter((r) => r >= config.ratingStrongPositiveThreshold).length / ratedCount : null
     const watchedPrevalence = totalFilms === 0 ? 0 : agg.count / totalFilms
 
     const affinityScore = clamp01(Math.pow(watchedPrevalence, 0.65))
@@ -184,18 +277,28 @@ export const buildTasteProfile = (films: FilmEntry[]): TasteProfile => {
     const sampleConfidence = clamp01(Math.log10(ratedCount + 1) / Math.log10(21))
     const metadataCompleteness = clamp01(agg.metadataHits / Math.max(agg.count, 1))
     const confidenceScore = clamp01(sampleConfidence * 0.75 + metadataCompleteness * 0.25)
+    const adjusted = applyFeatureOverride({
+      feature,
+      affinityScore,
+      expectedSatisfactionScore,
+      riskScore,
+      confidenceScore,
+      config,
+    })
 
     const classification = classifyFeature({
       feature,
       count: agg.count,
       ratedCount,
-      affinityScore,
-      expectedSatisfactionScore,
-      riskScore,
-      confidenceScore,
+      affinityScore: adjusted.affinityScore,
+      expectedSatisfactionScore: adjusted.expectedSatisfactionScore,
+      riskScore: adjusted.riskScore,
+      confidenceScore: adjusted.confidenceScore,
       hitRateAtLeast4,
       hitRateAtLeast45,
       averageRating,
+      config,
+      override: adjusted.override,
     })
 
     return {
@@ -206,14 +309,16 @@ export const buildTasteProfile = (films: FilmEntry[]): TasteProfile => {
       averageRating,
       hitRateAtLeast4,
       hitRateAtLeast45,
-      affinityScore,
-      expectedSatisfactionScore,
+      affinityScore: adjusted.affinityScore,
+      expectedSatisfactionScore: adjusted.expectedSatisfactionScore,
       residualMean,
       residualVariance,
-      riskScore,
-      confidenceScore,
+      riskScore: adjusted.riskScore,
+      confidenceScore: adjusted.confidenceScore,
       classification,
       metadataCompleteness,
+      override: adjusted.override,
+      overrideImpact: adjusted.overrideImpact,
     }
   })
 
@@ -235,18 +340,19 @@ const classifyFeature = (input: {
   hitRateAtLeast4: number | null
   hitRateAtLeast45: number | null
   averageRating: number | null
+  config: RecommenderConfig
+  override: RecommenderFeatureOverride | null
 }): FeatureClassification => {
-  const { feature, count, ratedCount, affinityScore, expectedSatisfactionScore, riskScore, confidenceScore, averageRating } = input
+  const { feature, count, ratedCount, affinityScore, expectedSatisfactionScore, riskScore, confidenceScore, averageRating, config, override } = input
 
-  if (ratedCount < 2 || confidenceScore < 0.25) return 'neutral_or_insufficient_data'
+  if (override === 'ignore') return 'neutral_or_insufficient_data'
+  if (count < config.minimumFeatureCount || ratedCount < config.minimumFeatureCount || confidenceScore < 0.25) return 'neutral_or_insufficient_data'
   if (affinityScore >= 0.55 && expectedSatisfactionScore >= 0.78 && riskScore < 0.42) return 'safe_bet_zone'
   if (affinityScore >= 0.55 && riskScore >= 0.42) return 'high_interest_mixed_results'
   if (count <= 4 && expectedSatisfactionScore >= 0.76 && confidenceScore >= 0.3) return 'underexplored_high_upside'
   if (affinityScore < 0.2 && expectedSatisfactionScore < 0.62) return 'low_priority'
 
-  const selectionAffinityTypes: TasteFeatureType[] = ['tmdb_genre', 'director', 'country', 'language', 'decade', 'runtime_bucket', 'tmdb_keyword']
-  const isSelectionAffinity = selectionAffinityTypes.includes(feature.type)
-  if (!isSelectionAffinity && ratedCount >= 6 && (averageRating ?? 5) <= 2.7) return 'possible_avoid'
+  if (!isSelectionFeature(feature.type) && ratedCount >= 6 && (averageRating ?? 5) <= 2.7) return 'possible_avoid'
 
   return 'neutral_or_insufficient_data'
 }

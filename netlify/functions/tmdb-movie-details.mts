@@ -50,6 +50,15 @@ export default async (request: Request) => {
     if (!person || typeof person !== 'object') return false
     return (person as Record<string, unknown>).job === 'Director'
   }) as Record<string, unknown> | undefined
+  const writers = crew
+    .filter((person) => {
+      if (!person || typeof person !== 'object') return false
+      const job = (person as Record<string, unknown>).job
+      return job === 'Writer' || job === 'Screenplay' || job === 'Story'
+    })
+    .map((person) => (person && typeof person === 'object' ? (person as Record<string, unknown>).name : null))
+    .filter((name): name is string => typeof name === 'string')
+    .filter((name, index, all) => all.indexOf(name) === index)
   const posterPath =
     typeof movie.poster_path === 'string' || movie.poster_path === null ? movie.poster_path : null
 
@@ -59,16 +68,28 @@ export default async (request: Request) => {
     releaseYear: typeof movie.release_date === 'string' ? Number(movie.release_date.slice(0, 4)) : null,
     runtime: typeof movie.runtime === 'number' ? movie.runtime : null,
     popularity: typeof movie.popularity === 'number' ? movie.popularity : null,
+    voteAverage: typeof movie.vote_average === 'number' ? movie.vote_average : null,
     genres: Array.isArray(movie.genres)
       ? movie.genres
           .map((genre) => (genre && typeof genre === 'object' ? (genre as Record<string, unknown>).name : null))
           .filter((name): name is string => typeof name === 'string')
       : [],
     director: typeof director?.name === 'string' ? director.name : null,
+    writers,
     cast: cast
       .slice(0, 5)
       .map((actor) => (actor && typeof actor === 'object' ? (actor as Record<string, unknown>).name : null))
       .filter((name): name is string => typeof name === 'string'),
+    countries: Array.isArray(movie.production_countries)
+      ? movie.production_countries
+          .map((country) => (country && typeof country === 'object' ? (country as Record<string, unknown>).iso_3166_1 : null))
+          .filter((code): code is string => typeof code === 'string')
+      : [],
+    languages: Array.isArray(movie.spoken_languages)
+      ? movie.spoken_languages
+          .map((language) => (language && typeof language === 'object' ? (language as Record<string, unknown>).iso_639_1 : null))
+          .filter((code): code is string => typeof code === 'string')
+      : [],
     posterPath,
     posterUrl: typeof posterPath === 'string' ? `${TMDB_IMAGE_BASE}${posterPath}` : null,
   })

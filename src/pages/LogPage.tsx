@@ -60,8 +60,11 @@ export function LogPage() {
   const [recentFilters, setRecentFilters] = useState<RecentFilters>(defaultRecentFilters)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [recentlyDeleted, setRecentlyDeleted] = useState<FilmEntry | null>(null)
+  const [highlightedFilmId, setHighlightedFilmId] = useState<string | null>(null)
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const latestSavedFilm = films.find((film) => film.id === lastSavedFilmId)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const enrichmentDialogRef = useRef<HTMLDialogElement>(null)
+  const enrichmentTriggerRef = useRef<HTMLButtonElement>(null)
   const filmsWithoutTmdb = useMemo(
     () => films.filter((film) => !film.metadata.tmdb?.id),
     [films],
@@ -122,7 +125,41 @@ export function LogPage() {
     if (undoTimerRef.current) {
       clearTimeout(undoTimerRef.current)
     }
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!lastSavedFilmId) return
+    setHighlightedFilmId(lastSavedFilmId)
+    const target = document.getElementById(`film-entry-${lastSavedFilmId}`)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current)
+    }
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedFilmId(null)
+      highlightTimerRef.current = null
+    }, 2200)
+  }, [lastSavedFilmId])
+
+  useEffect(() => {
+    const dialog = enrichmentDialogRef.current
+    if (!dialog) return
+    if (showEnrichment && !dialog.open) {
+      dialog.showModal()
+    } else if (!showEnrichment && dialog.open) {
+      dialog.close()
+    }
+  }, [showEnrichment])
+
+  const handleCloseEnrichmentDialog = () => {
+    if (showEnrichment) {
+      setShowEnrichment(false)
+      enrichmentTriggerRef.current?.focus()
+    }
+  }
 
   const handleImportLocalFilms = async () => {
     if (!user || !filmLogService) {
@@ -371,11 +408,6 @@ export function LogPage() {
           />
 
           {error ? <p className="alert alert--error" role="alert">{error}</p> : null}
-          {latestSavedFilm ? (
-            <p className="status-message">
-              Saved &ldquo;{latestSavedFilm.title}&rdquo; to your log.
-            </p>
-          ) : null}
         </section>
 
         <section className="panel">
@@ -465,6 +497,7 @@ export function LogPage() {
             films={filteredFilms}
             isLoading={isLoading}
             confirmingDeleteId={confirmingDeleteId}
+            highlightedFilmId={highlightedFilmId}
             onEdit={setEditingFilm}
             onRequestDelete={requestDelete}
             onConfirmDelete={(film) => void confirmDelete(film)}
@@ -484,6 +517,7 @@ export function LogPage() {
           </p>
           <div className="button-row">
             <button
+              ref={enrichmentTriggerRef}
               className="button-secondary"
               type="button"
               onClick={handleOpenEnrichmentQueue}
@@ -492,94 +526,110 @@ export function LogPage() {
               {showEnrichment ? 'Restart queue' : 'Open enrichment queue'}
             </button>
           </div>
-
-          {showEnrichment ? (
-            <section className="panel panel--nested">
-              <header className="panel__header">
-                <h3 className="panel__title">Enrichment review queue</h3>
-                <p className="meta">
-                  Progress: {Math.min(queueIndex, pendingEntries.length)} / {pendingEntries.length} reviewed &middot; {linkedCount} linked &middot; {skippedCount} skipped
-                </p>
-              </header>
-              {currentQueueEntry ? (
-                <div className="field">
-                  <p>
-                    <strong>Entry title:</strong> {currentQueueEntry.title}
-                  </p>
-                  <div className="button-row">
-                    <input
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="Search TMDb title"
-                    />
-                    <button
-                      className="button-secondary"
-                      type="button"
-                      onClick={() => void handleSearchCandidates()}
-                      disabled={isSearchingCandidates}
-                    >
-                      {isSearchingCandidates ? 'Searching...' : 'Search again'}
-                    </button>
-                    <button className="button-secondary" type="button" onClick={handleSkipEntry}>
-                      Skip
-                    </button>
-                  </div>
-                  {candidateResults.length > 0 ? (
-                    <div className="tmdb-results">
-                      {candidateResults.map((candidate) => (
-                        <button
-                          key={candidate.id}
-                          type="button"
-                          className="tmdb-result"
-                          disabled={isLinkingEntry}
-                          onClick={() => void handleLinkEntry(candidate)}
-                        >
-                          {candidate.poster_path ? (
-                            <img
-                              className="tmdb-result__poster"
-                              src={`https://image.tmdb.org/t/p/w92${candidate.poster_path}`}
-                              alt=""
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="tmdb-result__poster tmdb-result__poster--placeholder">
-                              No poster
-                            </div>
-                          )}
-                          <div className="tmdb-result__main">
-                            <p className="tmdb-result__title">
-                              {candidate.title}
-                              {candidate.release_date ? ` (${candidate.release_date.slice(0, 4)})` : ''}
-                            </p>
-                            <p className="tmdb-result__meta">
-                              {candidate.overview?.trim() || 'No overview provided by TMDb.'}
-                            </p>
-                          </div>
-                          <span className="tmdb-result__cta">
-                            {isLinkingEntry ? 'Linking...' : 'Link'}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                  {candidateResults.length === 0 && !isSearchingCandidates ? (
-                    <button
-                      className="button-secondary"
-                      type="button"
-                      onClick={() => void handleSearchCandidates(currentQueueEntry.title)}
-                    >
-                      Search TMDb for this title
-                    </button>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="status-message">Queue complete. Linked {linkedCount} entries and skipped {skippedCount}.</p>
-              )}
-              {enrichmentError ? <p className="alert alert--error" role="alert">{enrichmentError}</p> : null}
-            </section>
-          ) : null}
         </div>
       </details>
+
+      <dialog
+        ref={enrichmentDialogRef}
+        className="enrichment-dialog"
+        aria-labelledby="enrichment-dialog-title"
+        onClose={handleCloseEnrichmentDialog}
+      >
+        <header className="enrichment-dialog__header">
+          <div>
+            <h3 id="enrichment-dialog-title" className="panel__title">Enrichment review queue</h3>
+            <p className="meta">
+              Progress: {Math.min(queueIndex, pendingEntries.length)} / {pendingEntries.length} reviewed &middot; {linkedCount} linked &middot; {skippedCount} skipped
+            </p>
+          </div>
+          <button
+            className="button-secondary"
+            type="button"
+            onClick={() => enrichmentDialogRef.current?.close()}
+            aria-label="Close enrichment queue"
+          >
+            Close
+          </button>
+        </header>
+        <div className="enrichment-dialog__body">
+          {currentQueueEntry ? (
+            <div className="field">
+              <p>
+                <strong>Entry title:</strong> {currentQueueEntry.title}
+              </p>
+              <div className="button-row">
+                <input
+                  className="tmdb-search-input"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search TMDb title"
+                />
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => void handleSearchCandidates()}
+                  disabled={isSearchingCandidates}
+                >
+                  {isSearchingCandidates ? 'Searching...' : 'Search again'}
+                </button>
+                <button className="button-secondary" type="button" onClick={handleSkipEntry}>
+                  Skip
+                </button>
+              </div>
+              {candidateResults.length > 0 ? (
+                <div className="tmdb-results">
+                  {candidateResults.map((candidate) => (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      className="tmdb-result"
+                      disabled={isLinkingEntry}
+                      onClick={() => void handleLinkEntry(candidate)}
+                    >
+                      {candidate.poster_path ? (
+                        <img
+                          className="tmdb-result__poster"
+                          src={`https://image.tmdb.org/t/p/w92${candidate.poster_path}`}
+                          alt=""
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="tmdb-result__poster tmdb-result__poster--placeholder">
+                          No poster
+                        </div>
+                      )}
+                      <div className="tmdb-result__main">
+                        <p className="tmdb-result__title">
+                          {candidate.title}
+                          {candidate.release_date ? ` (${candidate.release_date.slice(0, 4)})` : ''}
+                        </p>
+                        <p className="tmdb-result__meta">
+                          {candidate.overview?.trim() || 'No overview provided by TMDb.'}
+                        </p>
+                      </div>
+                      <span className="tmdb-result__cta">
+                        {isLinkingEntry ? 'Linking...' : 'Link'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {candidateResults.length === 0 && !isSearchingCandidates ? (
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => void handleSearchCandidates(currentQueueEntry.title)}
+                >
+                  Search TMDb for this title
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="status-message">Queue complete. Linked {linkedCount} entries and skipped {skippedCount}.</p>
+          )}
+          {enrichmentError ? <p className="alert alert--error" role="alert">{enrichmentError}</p> : null}
+        </div>
+      </dialog>
     </section>
   )
 }

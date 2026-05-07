@@ -106,7 +106,7 @@ export function PublicTastePage() {
                 {browser.filtered.map((film) => <option key={film.id} value={film.id}>{film.title}</option>)}
               </select>
             </div>
-            {selectedFilmId ? <TasteSection title="You might also like from this diary" items={related} /> : null}
+            {selectedFilmId ? <TasteSection title="You might also like from this diary" items={related} flush /> : null}
           </section>
         </>
       ) : null}
@@ -114,18 +114,41 @@ export function PublicTastePage() {
   )
 }
 
-function TasteSection({ title, items }: { title: string; items: Array<{ film: FilmEntry; explanation: string }> }) {
-  return (
-    <section className="panel">
-      <header className="panel__header">
-        <h3 className="panel__title">{title}</h3>
-      </header>
+function TasteSection({
+  title,
+  items,
+  flush = false,
+}: {
+  title: string
+  items: Array<{ film: FilmEntry; explanation: string }>
+  flush?: boolean
+}) {
+  const body = (
+    <>
       {items.length === 0 ? <p className="empty-state">No films match these filters yet.</p> : null}
       <div className="film-list">
         {items.map((item) => (
           <FilmCard key={item.film.id} film={item.film} explanation={item.explanation} />
         ))}
       </div>
+    </>
+  )
+
+  if (flush) {
+    return (
+      <div className="taste-section taste-section--flush">
+        <h4 className="taste-section__subtitle">{title}</h4>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <section className="panel">
+      <header className="panel__header">
+        <h3 className="panel__title">{title}</h3>
+      </header>
+      {body}
     </section>
   )
 }

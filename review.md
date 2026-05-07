@@ -317,3 +317,178 @@ Files: `src/index.css` and `src/pages/InsightsPage.tsx`.
 2. **Branch hero copy on auth state, or keep neutral wording?** Branching is more honest but adds a tiny bit of state-dependent UI.
 3. **Consolidate `.panel` and `.shell-card` into one primitive?** Big consistency win, modest churn (touches multiple pages).
 4. **Add a period filter?** Useful but requires recomputing stats; confirm before scoping.
+
+---
+
+## Log (`/log`)
+
+Source: `src/pages/LogPage.tsx` (381 lines), `src/components/FilmForm.tsx` (176 lines), `src/components/FilmList.tsx` (42 lines), `src/components/FilmCard.tsx`, `src/components/TagInput.tsx`, `src/index.css`. Hooks: `src/hooks/useFilms.ts`.
+
+### Snapshot
+- Route `/log` (App.tsx:42), wrapped in `ProtectedRoute`. The primary diary entry/edit interface for signed-in users.
+- Layout: `.page` → `.page__hero` → up to **four stacked `.panel`s of helper/dev chrome** → `.log-grid` (2-col on desktop, 1-col at ≤860 px) holding the *New entry* form on the left and *Recent films* list on the right.
+- The four upstream panels (top to bottom): conditional *Import local films*, always-on *Temporary helper: Letterboxd import tagging* (LogPage.tsx:253–263), always-on *Developer tool: Enrich existing entries* (LogPage.tsx:265–284), and a conditional *Enrichment review queue* (LogPage.tsx:286–333).
+- Card primitive: `.panel` for sections (matches Shared Picks), `.film-card` for entries (matches Shared Picks), `.placeholder-card` for the empty list state.
+- No filters, no sort, no search on the *Recent films* list. The diary is reverse-chronological only.
+- Delete is a native `window.confirm()` (LogPage.tsx:125).
+
+### Issues
+
+#### [High]
+
+1. **Dev/admin chrome leaks into the user-facing page.** Two panels titled literally *"Temporary helper: Letterboxd import tagging"* (LogPage.tsx:255) and *"Developer tool: Enrich existing entries"* (LogPage.tsx:267) are rendered unconditionally for every signed-in user, above the actual log entry form. They use the same `.panel` chrome as real content, and one of them links to `/admin/import/letterboxd` (LogPage.tsx:260). On mobile this pushes the entry form three full screens down.
+2. **Hero copy is changelog-style, not user copy.** "This first flow now separates taste tags from viewing metadata, so future recommendations can focus on what you love rather than where you watched it." (LogPage.tsx:225–228) reads as developer-perspective release notes — "this first flow", "now separates", "future recommendations" — rather than guidance for the user looking at the page.
+3. **No filter / sort / search on *Recent films*.** Users with a long log have no way to find a specific entry except scrolling (LogPage.tsx:364–377). This is the page where filtering is most needed (the user's own data, often hundreds of rows) yet the only page in the app that lacks any filter UI.
+4. **`window.confirm()` for destructive delete.** A native, unbranded, unstoppable OS dialog (LogPage.tsx:125) is the only friction before permanent deletion. No undo. On mobile the dialog overlay is jarring.
+5. **Form errors are invisible to the user looking at the form.** When `addFilm`/`updateFilm` fails, `error` renders as a muted-grey `<p class="empty-state">` below the submit button (LogPage.tsx:356). Same colour and weight as the form's helper copy; nothing flags the failure.
+6. **No field-level validation feedback.** Only `title` and `dateWatched` carry the `required` attribute (FilmForm.tsx:158, 163), with no asterisk or marker; submission failures don't return field-level errors. If the API rejects an entry, the user has no clue which field is wrong.
+7. **TMDb search results render as pill buttons in a wrap-flex row.** Search hits become `.button-secondary` chips inside a `.tag-row` (FilmForm.tsx:154). With 5+ results or long titles the row balloons unpredictably; nothing groups release year, poster, or director per result. This is the inverse of the convention (vertical list / dropdown) and is hard to parse.
+8. **Rating select shows the full long-form description.** `<option>5.0 - Personal masterpiece; exceptional; would strongly recommend</option>` (FilmForm.tsx:164) — the dropdown is enormously wide on desktop and unreadable in the closed state on mobile (truncated mid-sentence).
+
+#### [Medium]
+
+9. **Touch targets below 44 px.** `.button-primary` and `.button-secondary` use `padding: var(--space-7) var(--space-12)` (`index.css:418, 450`) and have no `min-height`. On mobile they render ~36–40 px tall. This applies to *every* button on the page, plus the rating pill (`.film-card__rating`, ~30 px tall) and the `+N` tag toggle.
+10. **No hover/focus feedback on `.button-secondary`.** Only `.button-primary` has `:hover`/`:focus-visible` rules (`index.css:430–434`). Edit, Delete, Cancel, TMDb Search, and the enrichment-queue actions are all secondary buttons — none give pointer-hover or keyboard-focus feedback. The danger variant changes only colour, not background or border.
+11. **Triple-nested panel inside the enrichment queue.** Each candidate result is `<article class="panel" style="margin: 0.5rem 0; width: 100%">` (LogPage.tsx:312) inside a `.tag-row` inside another `.panel`. Inline styles, mismatched container (`.tag-row` is for chips, not stacked cards), and three layers of border/shadow.
+12. **Raw poster URL printed as text.** "Poster: https://image.tmdb.org/t/p/w342…" (LogPage.tsx:314) appears as a `<p>` inside each enrichment candidate instead of an actual `<img>` preview. Makes the matching task much harder.
+13. **Empty list state breaks visual chrome.** `FilmList` renders a `.placeholder-card` (muted background, no shadow) inside the *Recent films* `.panel` (FilmList.tsx:18–24). The form panel is solid surface + shadow; the empty list is a separate muted card; the affordance flips between sibling sections.
+14. **"Showing N logged films" is dev-output style.** `<p class="meta">Showing {films.length} logged films.</p>` (LogPage.tsx:369) — counts that should belong to a filter UI live alone in the panel header.
+15. **Loading state is plain `.empty-state` text.** `Loading your film log...` (FilmList.tsx) — no skeleton, no spinner, same muted colour as the empty state. App-wide pattern.
+16. **No `aria-label` on Edit/Delete buttons.** `FilmCard.tsx:122–129` — buttons say only "Edit" / "Delete" with no per-film context. With many cards in the list, screen readers announce "Edit, button" repeatedly.
+17. **Status-message paragraph below an empty form.** After a successful save the form resets to blank state but the green `Saved "X" to your log.` (LogPage.tsx:357–361) sits below the now-empty form. The success cue is detached from any visual confirmation that the entry actually appeared in the list (which is in the *other* column on desktop, and below on mobile).
+18. **Long select option labels overflow on mobile.** *Watch context*, *First watch*, and *Rating* all use plain `<select>` controls with no styling for narrow viewports.
+19. **`console.error` in 9 places** across `LogPage.tsx` (lines 68, 117, 158, 209) and `useFilms.ts` (lines 101, 132, 170, 216, 242). App-wide pattern — flag for cleanup.
+20. **Enrichment queue is not a focus-trapped modal.** It's a regular `<section>` rendered conditionally in the page flow (LogPage.tsx:286–333). Tabbing from the form can land users inside the queue without warning. If it opens after a click, focus is not moved to it.
+
+#### [Polish]
+
+21. **No autofocus on the entry form.** First-time users land on the page and must click into the title input (FilmForm.tsx:158). Even on `editingFilm` switch, focus stays wherever it was.
+22. **No draft persistence.** A half-filled form is wiped on tab close or accidental refresh (FilmForm.tsx:142–143).
+23. **TMDb search input might collapse on narrow screens.** Inside `.button-row { display: flex; flex-wrap: wrap; }` (`index.css:442–446`), the input has no `flex: 1` or `min-width`, so on narrow widths it can shrink to its placeholder width while the button takes the rest of the row.
+24. **"Search Again" / "Search" / "Skip" / "Link" capitalization differs.** Inconsistent button labels in the enrichment queue.
+25. **`Link` button in enrichment uses `.button-primary` while every other action is `.button-secondary`** (LogPage.tsx:316). On a row of three candidates this creates three loud primary buttons stacked vertically.
+26. **Tag input vertical density.** `TagInput.tsx` renders all tag categories and suggestions inline; on mobile this dominates the form. Categories should collapse by default with a search/typeahead.
+27. **Hero `.eyebrow` says "Log"** but the AppShell nav presumably labels this differently (worth a quick check for consistency).
+28. **Two import-helper panels rendered as `.panel.import-panel`** but `.import-panel` adds no special styling I could find — same chrome as a regular panel.
+
+### Recommendations
+
+Files: `src/pages/LogPage.tsx`, `src/components/FilmForm.tsx`, `src/components/FilmList.tsx`, `src/components/FilmCard.tsx`, `src/index.css`.
+
+**Triage the dev/admin chrome first (#1, #2)**
+- Move the *Letterboxd import tagging* panel out of `/log` and into an admin-gated route (or behind a feature flag / role check). It currently links to `/admin/import/letterboxd` — co-locate the entrypoint there.
+- The *Enrich existing entries* panel and queue should be gated the same way, or at minimum collapsed into a `<details>` block at the *bottom* of the page with neutral copy ("Improve metadata for older entries").
+- The conditional *Import local films* panel is legitimate first-run content — keep it, but render it inside the same column as the form rather than full-width above the grid, and dismiss it when the count drops to zero.
+- Rewrite the hero:
+  ```tsx
+  <h2 className="page__title">{editingFilm ? 'Edit a log entry' : 'Log a film'}</h2>
+  <p className="page__copy">Capture the essentials while the film is still fresh — tags, ratings, and notes you'll thank yourself for later.</p>
+  ```
+
+**Add filtering + search to *Recent films* (#3)**
+- Reuse the `.filter-grid--compact` pattern from Shared Picks. Add controls for: free-text title search, tag (multi-select), rating range, year. Implement filtering in `LogPage.tsx` before passing to `FilmList`, so existing card rendering is untouched.
+- Replace the *Showing {N} logged films* paragraph with a live result-count tied to active filters.
+
+**Fix the destructive delete (#4)**
+- Replace `window.confirm()` with an inline confirmation pattern: clicking *Delete* swaps the card's action row for a *Confirm delete · Cancel* pair (with focus moved to *Cancel* by default). Delete only fires after the second click.
+- After deletion, show a *.status-message* with an Undo button that calls `addFilm` with the original entry for ~5 seconds.
+
+**Form ergonomics (#5, #6, #21, #22)**
+- Replace `<p class="empty-state">{error}</p>` (LogPage.tsx:356) with a dedicated `.form-error` style (red-tinted background, icon, role="alert"):
+  ```css
+  .form-error {
+    margin: 0;
+    padding: var(--space-6) var(--space-8);
+    border: 1px solid var(--accent-line);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+  }
+  ```
+- Add asterisks on required-field labels:
+  ```tsx
+  <label htmlFor="title">Film title <span className="field__required" aria-label="required">*</span></label>
+  ```
+- Add `autoFocus` to the *Title* input when no `initialValues` are passed; on `editingFilm` switch, scroll the form into view and focus the title.
+- Persist a draft to `sessionStorage` keyed by `editingFilm?.id ?? 'new'` and restore on mount; clear on successful submit.
+
+**TMDb search UX (#7, #23)**
+- Render results as a vertical list with poster thumbnail, title, year, director — not as wrapping pill buttons. Reuse a slimmer variant of `FilmCard` (`<FilmCard variant="suggestion">`).
+- Set `flex: 1; min-width: 0;` on the TMDb search input so it doesn't collapse inside `.button-row`.
+
+**Rating select (#8)**
+- Show only the short label in the dropdown; reveal the description as a hint below the field:
+  ```tsx
+  <option key={option.value} value={option.value}>{option.label}</option>
+  ...
+  {form.rating ? <p className="field__hint">{getRatingConfig(Number(form.rating))?.description}</p> : null}
+  ```
+- Or replace the `<select>` with a 10-button radio group rendered as star/dot pills — each rating value is a single tap, no dropdown to open.
+
+**Enrichment queue (#11, #12, #25)**
+- Render the queue as a focus-trapped modal (use a small `<dialog>` wrapper or a portal with backdrop). When opened, focus moves to the first input; ESC closes; tab is trapped.
+- Rebuild the candidate card without an inline-styled `.panel` inside `.tag-row`: a flat list with poster `<img>` thumbnails, title, year, director, and a single secondary *Link* button per row.
+- Replace the raw URL `<p>` with `<img class="film-card__poster" src={tmdbPosterUrl} loading="lazy" />`.
+
+**Touch targets and feedback (#9, #10, #16)**
+- Add `min-height: 44px` to `.button-primary` and `.button-secondary` and bump rating-pill padding on mobile:
+  ```css
+  .button-primary, .button-secondary { min-height: 44px; }
+  @media (max-width: 560px) {
+    .film-card__rating { padding: var(--space-2) var(--space-5); font-size: 0.95rem; }
+  }
+  ```
+- Add hover/focus states to `.button-secondary`:
+  ```css
+  .button-secondary:hover, .button-secondary:focus-visible {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+  }
+  .button-secondary--danger:hover, .button-secondary--danger:focus-visible {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-color: var(--accent);
+  }
+  ```
+- Add per-film aria-labels:
+  ```tsx
+  <button aria-label={`Edit ${film.title}`} ...>Edit</button>
+  <button aria-label={`Delete ${film.title}`} ...>Delete</button>
+  ```
+
+**Empty / loading / list chrome (#13, #14, #15)**
+- Make the empty state live inside the `.panel` itself, not a separate `.placeholder-card`. Replace the FilmList branching with one consistent inline empty UI:
+  ```tsx
+  {films.length === 0 && !isLoading ? (
+    <p className="empty-state">No films logged yet — your first entry will appear here.</p>
+  ) : null}
+  ```
+- Drop *Showing {N}* from the panel header; surface it in the new filter row instead.
+- Reuse the proposed `.placeholder-card` shimmer skeleton (from the Shared Picks/Insights sections) for the loading state.
+
+**Status message position (#17)**
+- After save, scroll the latest entry into view in the right column (or jump to the top of the list) and show a transient toast over the page rather than an inline paragraph below the form. A simple toast can live in `AppShell` and accept `status-message` events from any page.
+
+**Tag input density (#26)**
+- Collapse all categories by default; show a single search input + selected-tag pills. Expand a category only when the user taps its header. Reduces vertical space by ~70%.
+
+### Cross-page consistency notes (additions)
+
+These are new patterns observed on the Log page that affect the broader review:
+
+- **Dev/admin tooling shipped to end users.** This is a Log-specific issue today, but it's worth a project-wide grep for *"Temporary"*, *"Developer tool"*, *"admin"*, and `/admin/` links — they may exist elsewhere too.
+- **Three different empty-state primitives now in play:** `.empty-state` (Shared Picks, Insights, Log error/loading), `.placeholder-card` (Log empty list), and inline muted `<p>` text (Insights footnote). Pick one and document it.
+- **Two button variants with diverging affordances.** `.button-primary` has hover/focus/active states; `.button-secondary` has none. Standardise both to receive the same family of state styles.
+- **`window.confirm()` for destructive ops.** Only Log uses it currently; if Insights/Shared Picks ever add destructive actions, lock down a single inline-confirm or modal pattern first.
+- **Status-message vs error inconsistency.** Success uses `.status-message` (green, bold); errors use `.empty-state` (muted grey). The mismatch makes failures visually quieter than successes — the opposite of what you want.
+- **No skeleton loading anywhere in the app.** Same `<p class="empty-state">Loading…</p>` pattern appears on all three pages reviewed so far. A single shared `.skeleton-card` rule would unify the loading UX immediately.
+- **Inline styles in JSX.** Found in the enrichment queue (`style={{ margin: '0.5rem 0', width: '100%' }}`). Should be migrated to a class to keep styling out of components.
+
+### Open questions for the user
+1. **Move the dev/admin panels out of `/log` entirely?** The cleanest answer is yes, behind an admin role or feature flag. Confirm that `/admin/import/letterboxd` is the intended home, and whether you want the *Enrich existing entries* flow there too.
+2. **Add filter + search to *Recent films*?** Big UX win, modest work. Confirm the filter set (title search, tag, rating, year, watch context?).
+3. **Replace `window.confirm()` with inline confirm + undo, or an in-app modal?** Inline + undo is lighter; modal is more conventional. Pick one and apply across the app.
+4. **Rating control: keep `<select>` or move to a pill-radio group?** Pills are faster but use more horizontal space; check on the densest mobile width before committing.
+5. **Toast system?** Adopting a toast for "Saved" / "Deleted" / errors would resolve the mismatch between `.status-message` and `.empty-state`, but introduces a new shared component. Worth doing if multiple pages will benefit.

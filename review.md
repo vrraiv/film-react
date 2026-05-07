@@ -492,3 +492,184 @@ These are new patterns observed on the Log page that affect the broader review:
 3. **Replace `window.confirm()` with inline confirm + undo, or an in-app modal?** Inline + undo is lighter; modal is more conventional. Pick one and apply across the app.
 4. **Rating control: keep `<select>` or move to a pill-radio group?** Pills are faster but use more horizontal space; check on the densest mobile width before committing.
 5. **Toast system?** Adopting a toast for "Saved" / "Deleted" / errors would resolve the mismatch between `.status-message` and `.empty-state`, but introduces a new shared component. Worth doing if multiple pages will benefit.
+
+> **Note:** The Log page is auth-gated and currently has a single user (the owner). The dev/admin chrome flagged above is therefore visible to one person, not the public — but the page is in active use, so the form-ergonomics, filter, and delete-flow recommendations still matter day to day.
+
+---
+
+## Film Diary (`/`)
+
+Source: `src/pages/PublicPreviewPage.tsx` (113 lines), `src/components/FilmFilters.tsx` (117 lines), `src/components/FilmCard.tsx`, `src/index.css`. Service: `fetchPublicFilmEntries` from `src/services/publicFilmProfileService.ts`. Linked from AppShell nav as **"Film Diary"** → `/` (`AppShell.tsx:6, 17`).
+
+### Snapshot
+- The site's index route. First page anyone sees; data scope is "all films marked `isPublic`".
+- Layout: `.page` → `.page__hero` (eyebrow + title + copy + inline `FilmFilters` + result-count paragraph) → flat `.film-list` of `FilmCard`s. No curated sections, no sidebar.
+- Filters (compact mode, 5 visible): *Title keyword*, *Year*, *Tag*, *Minimum rating*, *Watch context*. A sixth — *Director* — is defined in the filter state and rendered only when `compact={false}`; this page always passes `compact={true}` (line 80) so it's never shown.
+- Card primitive: `.film-card` (matches Shared Picks and Log). `FilmCard` is rendered with no flags set, so no `showLink`, no actions, no collection meta.
+- Empty/no-match states use `.placeholder-card` (matches Log's empty list); loading and error reuse `<p class="empty-state">` (matches Shared Picks and Insights).
+
+### Issues
+
+#### [High]
+
+1. **The *Director* filter is dead code on this page.** `directorQuery` is in `defaultFilters` (`PublicPreviewPage.tsx:10`) and a director input is rendered by `FilmFilters` (`FilmFilters.tsx:48–61`) — but only when `compact={false}`. This page always passes `compact={true}`, so the input never shows. *Worse*, the filter logic in `filteredFilms` (`PublicPreviewPage.tsx:21–35`) doesn't reference `directorQuery` at all — so even if it were exposed, typing into it would do nothing. Director is the most likely thing a casual visitor would search by; this is a real gap.
+2. **Cards aren't navigable.** `<FilmCard film={film} />` (`PublicPreviewPage.tsx:107`) doesn't pass `showLink`, so titles render as plain text. A visitor can't click through to a detail page. Same gap is present on Shared Picks (already flagged) — but it's most painful here, where the page is explicitly an entry-point for "looking for something to watch."
+3. **Minimum-rating select caps arbitrarily at 2.5.** Options go 5.0 → 2.5 in 0.5 steps (`FilmFilters.tsx:86–92`), but real ratings span 0.5–5.0. Visitors can't filter "≥ 2.0" or "≥ 1.0", and there's no way to look at *low-rated* picks at all (no maximum-rating control either).
+4. **Filter touch targets are too small on mobile.** Same `.filter-grid--compact` issues already flagged on Shared Picks: 0.4 rem / 0.5 rem padding (`index.css:413`), 0.75 rem labels (`index.css:408`), no `<860 px` breakpoint refinement. With six filters this is denser than Shared Picks's two — the cramping is worse.
+
+#### [Medium]
+
+5. **Four near-identical "nothing here" states with three different chrome treatments.** Loading: `<p class="empty-state">` (line 85). Error: `<p class="empty-state">` (line 86). No public films: `.placeholder-card` (line 89). No matches for current filters: `.placeholder-card` (line 98). The error and loading states get the quietest chrome (muted text), while the legitimate empty/no-match states get the louder card chrome — backwards. Errors should be the most attention-grabbing.
+6. **`.placeholder-card` is too quiet for "no matches".** A user actively filtering may not realise their filters caused zero results. Same chrome as the cold-start empty state; should be visually distinct (e.g., border tinted with `--accent-line` and a Reset Filters button inline).
+7. **No "Reset filters" affordance.** With five filters, recovering from a narrow combination means clicking through each control. A single secondary button next to the result count would solve it.
+8. **Result count is buried muted text.** `<p class="meta">Showing {filtered} of {total} films.</p>` (line 81) sits below the filter grid in the same muted grey as helper copy. After applying a filter, the visual feedback is barely there.
+9. **Hero copy is first-person without context.** "Here's what I've logged recently." (line 74) — fine for the diary owner, ambiguous for a first-time visitor who has no idea whose diary this is. No name, no "About" link, no "by Vrraiv" attribution.
+10. **No sort control.** The list arrives in whatever order `fetchPublicFilmEntries` returns. Visitors can't switch to "highest rated", "oldest watched first", or "most-watched directors".
+11. **Tag filter is single free-text substring.** `'horror'` matches `horror_psychological` (great) and any other tag containing the substring (less great). No autocomplete from the known tag taxonomy, no multi-select. Compare with Shared Picks, which uses a populated `<select>` of known tags — that pattern is better and could be reused here.
+12. **Watch context options aren't pruned to what's used.** The select renders every `watchContextOptions` value (`FilmFilters.tsx:108–112`), so visitors can pick "Theater" and get zero results when no public film carries that context.
+13. **`console.error` in the load path** (`PublicPreviewPage.tsx:51`). App-wide pattern.
+
+#### [Polish]
+
+14. **Eyebrow vs nav-link capitalisation differs.** The hero eyebrow is "Film diary" (line 73); the nav link is "Film Diary" (`AppShell.tsx:6, 17`). Pick one.
+15. **Placeholder examples are all lowercase** ("e.g. alien", "e.g. 1979", "e.g. ridley scott") — lowercase film/director names look like a stylistic statement; they're just placeholders.
+16. **`.diary-filters` div wraps the FilmFilters and the count paragraph.** A bespoke wrapper class used only here (`PublicPreviewPage.tsx:79–82`); could be inlined or replaced with a more reusable `.filter-summary` block.
+17. **No skeleton loading.** App-wide pattern; same shared `.placeholder-card` shimmer recommendation as Shared Picks/Insights would apply here.
+18. **No "About" or footer link.** First page, no on-page hint about who's keeping the diary, where to find the source, or how to contact.
+
+### Recommendations
+
+Files: `src/pages/PublicPreviewPage.tsx`, `src/components/FilmFilters.tsx`, `src/index.css`.
+
+**Director filter (#1)**
+- Either expose the director input in compact mode (drop the `!compact` guard at `FilmFilters.tsx:48`) and add `directorQuery` to the filter logic in `filteredFilms`, or remove `directorQuery` from `defaultFilters` and the type. Half-implemented state is the worst of both.
+- If exposing, match against `film.tmdbMetadata?.director ?? film.metadata.tmdb?.director` with a case-insensitive substring match.
+
+**Card navigation (#2)**
+- Pass `showLink` on the public pages too:
+  ```tsx
+  <FilmCard key={film.id} film={film} showLink />
+  ```
+  Confirm `/film/${film.id}` is reachable for unauthenticated users; if not, gate it behind a public-detail route that strips private fields.
+
+**Rating filter range (#3)**
+- Render the select from `RATING_OPTIONS` (already imported across the app) so it covers the full 0.5–5.0 range:
+  ```tsx
+  {RATING_OPTIONS.map((opt) => (
+    <option key={opt.value} value={opt.value}>{opt.label}</option>
+  ))}
+  ```
+  Or convert to a numeric `<input type="range" min="0.5" max="5" step="0.5">` with a live readout.
+
+**Filter ergonomics (#4, #5, #6, #7, #8)**
+- Apply the same mobile filter rules proposed for Shared Picks:
+  ```css
+  @media (max-width: 560px) {
+    .filter-grid--compact { grid-template-columns: 1fr; gap: var(--space-6); }
+    .filter-grid--compact .field label { font-size: 0.85rem; }
+    .filter-grid--compact .field input,
+    .filter-grid--compact .field select { padding: 0.6rem 0.75rem; min-height: 44px; }
+  }
+  ```
+- Add a `.filter-summary` row that owns the result count + a Reset button:
+  ```tsx
+  <div className="filter-summary">
+    <p className="meta">{filteredFilms.length} of {films.length} films</p>
+    <button className="button-secondary" onClick={() => setFilters(defaultFilters)} disabled={isDefault}>
+      Reset filters
+    </button>
+  </div>
+  ```
+- Make "no matches" louder and actionable:
+  ```tsx
+  <div className="placeholder-card placeholder-card--warning">
+    <strong>No matches.</strong>
+    <p>Your current filters return zero films.</p>
+    <button className="button-secondary" onClick={() => setFilters(defaultFilters)}>Reset filters</button>
+  </div>
+  ```
+  ```css
+  .placeholder-card--warning { border: 1px solid var(--accent-line); background: var(--accent-soft); }
+  ```
+- Distinguish error chrome from empty chrome — see the cross-page recommendation below.
+
+**Tag filter (#11)**
+- Replace the free-text input with the same `<select>` pattern Shared Picks uses (populated from the actual tag list). Optionally upgrade to multi-select via a small chip-toggle component built from the existing `.tag-chip` styles.
+
+**Sort + hero copy (#9, #10)**
+- Add a sort control alongside Reset:
+  ```tsx
+  <select value={sort} onChange={(e) => setSort(e.target.value)}>
+    <option value="recent">Recently watched</option>
+    <option value="rating-high">Highest rated</option>
+    <option value="oldest">Oldest watched</option>
+  </select>
+  ```
+- Reframe the hero so it reads to a stranger:
+  ```tsx
+  <h2 className="page__title">A film diary by {ownerName}.</h2>
+  <p className="page__copy">Recent watches, ratings, and notes. Looking for something to watch? Start here.</p>
+  ```
+
+**Cleanup (#13, #14, #15, #17, #18)**
+- Remove the `console.error` (or wire it up to a real reporter project-wide).
+- Settle on title-case "Film Diary" everywhere to match the nav.
+- Add a small site footer with attribution and a link to the source/repo.
+- Reuse the proposed `.placeholder-card` shimmer skeleton for the loading state.
+
+### Cross-page consistency notes (additions / confirmations)
+
+- **`.placeholder-card` is now used on three pages** (Log empty list, Film Diary cold-start, Film Diary no-match). Worth promoting it to a real shared primitive with named variants (`.placeholder-card--warning`, `.placeholder-card--error`) rather than a one-off muted card.
+- **Error chrome vs empty chrome is inverted.** All four pages render errors as muted `<p class="empty-state">` while rendering benign empty states with louder chrome. Errors should be the loudest. Recommend a single shared `.alert` / `.alert--error` rule applied consistently.
+- **All public pages have one `console.error` in their load path** (Shared Picks, Insights, Film Diary). Single sweep cleanup.
+- **`.button-secondary` still has no hover/focus state**, confirmed across all four reviewed pages. The fix is one CSS block; do it once for the whole app.
+- **Filter UX diverges between the two filtered pages.** Shared Picks uses `<select>` for the tag filter (populated from real tags); Film Diary uses free-text. Standardise on the populated-select pattern.
+- **`FilmCard` is never given `showLink={true}` on the two public pages**, even though the prop exists. Wherever a card represents a real entry the user might want to drill into, pass it.
+- **Hero copy tone varies wildly across pages.** Log is changelog-style ("This first flow now separates…"), Insights is misleading ("shared film diary"), Shared Picks is marketing ("Find favorites grouped by mood…"), Film Diary is first-person ("Here's what I've logged…"). Worth deciding on a single voice — most likely first-person owner voice, since that's also what the diary is — and rewriting all four heroes against it.
+
+### Open questions for the user
+1. **Resurrect or remove the Director filter?** It's dead code today. Resurrecting is the right move if it ever felt useful in design, but the implementation needs both the input *and* the filter logic.
+2. **Make `FilmCard` titles always `showLink`?** Ripples to Shared Picks too. Confirms there's a public-readable detail route.
+3. **Adopt a shared `.alert` primitive** (or rework `.placeholder-card` with variants) so error / empty / no-match states stop sharing chrome with each other?
+4. **Single-voice hero pass across all pages?** Worth doing as one batch since copy keeps drifting.
+
+---
+
+## Forward-looking considerations for the prototype pages
+
+The remaining pages (Recommendations at `/recommendations`, the authenticated `/home` route, and any other in-flight surfaces) are still prototypes. Rather than auditing them in detail, here are the patterns surfaced in the four reviewed pages that are worth carrying forward — and the traps worth steering around — so the prototypes mature without inheriting the same friction.
+
+### Patterns worth standardising before the prototypes harden
+
+- **Card primitive.** The app already has three competing primitives (`.panel`, `.shell-card`, `.placeholder-card`) plus the entry-specific `.film-card`. Settle on **one** content-card primitive with modifiers (e.g. `.panel`, `.panel--data`, `.panel--placeholder`) before the prototype pages add a fourth.
+- **Filter row.** `.filter-grid--compact` is the de facto pattern. Add a touch-friendly mobile breakpoint (`<560px → 1 col, 44px hit areas`) once, then reuse.
+- **Loading state.** Plain `<p>Loading…</p>` is the current default everywhere. Build a single skeleton/shimmer rule (`.placeholder-card` with a shimmer keyframe) and use it for every prototype.
+- **Empty / no-match / error chrome.** Three concepts, three distinct visual treatments — and *errors should be the loudest*. Lock down a shared `.alert` (or variant `.placeholder-card`) before the next page invents its own.
+- **Buttons.** `.button-primary` has hover/focus/active styles; `.button-secondary` has none. Fix the secondary variant once and prototypes inherit the polish for free.
+- **Hero copy voice.** Pick one (likely first-person owner voice) and apply it everywhere. Avoid changelog-style or developer-perspective copy on user-facing pages.
+- **`FilmCard` props.** Always pass `showLink` when a card represents a navigable entry. If a detail page doesn't exist yet, that's the prototype to build next.
+
+### Traps to avoid carrying forward
+
+- **Dev/admin tooling rendered inline on user pages.** The Log page mixes "Temporary helper" / "Developer tool" panels with real content. Even on auth-gated pages with a single user today, route admin flows under `/admin/*` from day one — separating them later is harder than starting separated.
+- **Inline `style={{...}}` in JSX.** Already present in the Log enrichment queue. Keep styling in CSS so the design tokens stay enforced.
+- **Half-wired filters.** Film Diary has a `directorQuery` in state and a hidden input but no filter logic. When prototyping a filter, wire it end-to-end or don't add it to state at all.
+- **Native `window.confirm()` for destructive actions.** Acceptable for a quick prototype, but every additional page that adopts it makes replacing the pattern harder. Decide on inline-confirm + undo *or* a modal early.
+- **Stray `console.error`.** Already in five places across reviewed pages. Centralise error reporting (or just delete the calls) before prototypes triple the count.
+- **Hero copy that talks to the developer, not the visitor.** Read every new hero out loud to a stranger before shipping. If it mentions "this flow", "now separates", or "future X", rewrite it.
+- **Touch-target debt.** Buttons under 44 px and 0.4 rem-padded selects are already shipped on three pages. Establish minimums in the design tokens (e.g. `--control-min-height: 44px`) so prototype controls inherit them.
+
+### Lightweight checklist for each new prototype page
+
+When standing up a new prototype, run through this before merging:
+
+1. Does it render acceptably on a 360 px viewport (no horizontal scroll, controls ≥ 44 px)?
+2. Do all interactive elements have visible `:hover` *and* `:focus-visible` states?
+3. Loading / empty / error / no-match — are the four chromes visually distinct, with errors being the loudest?
+4. Does the hero copy read clearly to someone who has never seen the app?
+5. Are filters fully wired (state → component → filter logic), or are any half-implemented?
+6. Are destructive actions confirmed via the project's standard pattern (not raw `window.confirm()`)?
+7. Did anything new get an inline `style={{...}}` or a stray `console.*`?
+8. Reusing `.panel` / `.film-card` / `.placeholder-card`, or did this page invent a new primitive?
+
+Going through this list as part of the prototype's own definition-of-done keeps the polish debt from compounding while the design is still in flux.

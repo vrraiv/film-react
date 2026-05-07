@@ -97,8 +97,7 @@ export const useFilms = (
 
     try {
       setFilms(await service.fetchEntries())
-    } catch (loadError) {
-      console.error(loadError)
+    } catch {
       setError('We could not load your film log.')
     } finally {
       setIsLoading(false)
@@ -128,8 +127,7 @@ export const useFilms = (
         if (isMounted) {
           setFilms(nextFilms)
         }
-      } catch (loadError) {
-        console.error(loadError)
+      } catch {
         if (isMounted) {
           setError('We could not load your film log.')
         }
@@ -166,8 +164,7 @@ export const useFilms = (
       setFilms(nextFilms)
       setLastSavedFilmId(savedEntry.id)
       return true
-    } catch (saveError) {
-      console.error(saveError)
+    } catch {
       setError('We could not save that film. Try again.')
       return false
     } finally {
@@ -212,8 +209,7 @@ export const useFilms = (
       setFilms(nextFilms)
       setLastSavedFilmId(filmId)
       return true
-    } catch (saveError) {
-      console.error(saveError)
+    } catch {
       setError('We could not update that film. Try again.')
       return false
     } finally {
@@ -238,8 +234,7 @@ export const useFilms = (
         setLastSavedFilmId(null)
       }
       return true
-    } catch (saveError) {
-      console.error(saveError)
+    } catch {
       setError('We could not delete that film. Try again.')
       return false
     } finally {

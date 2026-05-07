@@ -25,8 +25,7 @@ export function PublicTastePage() {
       try {
         const nextFilms = await fetchPublicFilmEntries()
         if (isMounted) setFilms(nextFilms)
-      } catch (loadError) {
-        console.error(loadError)
+      } catch {
         if (isMounted) setError('We could not load this shared watch guide right now.')
       } finally {
         if (isMounted) setIsLoading(false)
@@ -71,8 +70,14 @@ export function PublicTastePage() {
           </div>
         </div>
       </header>
-      {isLoading ? <p className="empty-state">Loading shared picks...</p> : null}
-      {error ? <p className="empty-state">{error}</p> : null}
+      {isLoading ? (
+        <div className="skeleton-list" aria-busy="true" aria-label="Loading shared picks">
+          <div className="skeleton-card skeleton-card--card" />
+          <div className="skeleton-card skeleton-card--card" />
+          <div className="skeleton-card skeleton-card--card" />
+        </div>
+      ) : null}
+      {error ? <p className="alert alert--error" role="alert">{error}</p> : null}
 
       {!isLoading && !error ? (
         <>

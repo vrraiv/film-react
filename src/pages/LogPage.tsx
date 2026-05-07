@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
 import { FilmForm } from '../components/FilmForm'
 import { FilmList } from '../components/FilmList'
@@ -10,7 +9,29 @@ import {
   importLocalFilmsToService,
 } from '../services/localFilmImportService'
 import { fetchTmdbMovieDetails, searchTmdbMovies, type TmdbSearchResult } from '../services/tmdbService'
-import type { FilmEntry } from '../types/film'
+import type { CreateFilmEntryInput, FilmEntry } from '../types/film'
+
+type RecentSort = 'recent' | 'rating-high' | 'oldest'
+
+type RecentFilters = {
+  query: string
+  tag: string
+  minimumRating: string
+  sort: RecentSort
+}
+
+const defaultRecentFilters: RecentFilters = {
+  query: '',
+  tag: '',
+  minimumRating: '',
+  sort: 'recent',
+}
+
+const isDefaultRecent = (filters: RecentFilters) =>
+  filters.query === defaultRecentFilters.query &&
+  filters.tag === defaultRecentFilters.tag &&
+  filters.minimumRating === defaultRecentFilters.minimumRating &&
+  filters.sort === defaultRecentFilters.sort
 
 export function LogPage() {
   const { user } = useAuth()
@@ -36,6 +57,10 @@ export function LogPage() {
   const [linkedCount, setLinkedCount] = useState(0)
   const [skippedCount, setSkippedCount] = useState(0)
   const [enrichmentError, setEnrichmentError] = useState<string | null>(null)
+  const [recentFilters, setRecentFilters] = useState<RecentFilters>(defaultRecentFilters)
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
+  const [recentlyDeleted, setRecentlyDeleted] = useState<FilmEntry | null>(null)
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestSavedFilm = films.find((film) => film.id === lastSavedFilmId)
   const filmsWithoutTmdb = useMemo(
     () => films.filter((film) => !film.metadata.tmdb?.id),
@@ -64,9 +89,7 @@ export function LogPage() {
           setLocalImportCount(status.entries.length)
           setShowLocalImport(status.entries.length > 0 && !status.isImported)
         }
-      } catch (statusError) {
-        console.error(statusError)
-
+      } catch {
         if (isMounted) {
           setLocalImportError('We could not check for local films to import.')
           setShowLocalImport(false)
@@ -95,6 +118,12 @@ export function LogPage() {
     setEnrichmentError(null)
   }, [showEnrichment, queueIndex, currentQueueEntry?.id])
 
+  useEffect(() => () => {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current)
+    }
+  }, [])
+
   const handleImportLocalFilms = async () => {
     if (!user || !filmLogService) {
       return
@@ -113,24 +142,58 @@ export function LogPage() {
           : `Imported ${result.importedCount} local films.`,
       )
       await reloadFilms()
-    } catch (importError) {
-      console.error(importError)
+    } catch {
       setLocalImportError('We could not import your local films. Try again.')
     } finally {
       setIsImportingLocalFilms(false)
     }
   }
 
-  const handleDeleteFilm = async (film: FilmEntry) => {
-    const shouldDelete = window.confirm(`Delete "${film.title}" from your log?`)
-    if (!shouldDelete) {
-      return
-    }
+  const requestDelete = (film: FilmEntry) => {
+    setConfirmingDeleteId(film.id)
+  }
 
-    await deleteFilm(film.id)
+  const cancelDelete = () => {
+    setConfirmingDeleteId(null)
+  }
+
+  const confirmDelete = async (film: FilmEntry) => {
+    setConfirmingDeleteId(null)
+    const succeeded = await deleteFilm(film.id)
+    if (!succeeded) return
+
     if (editingFilm?.id === film.id) {
       setEditingFilm(null)
     }
+
+    setRecentlyDeleted(film)
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current)
+    }
+    undoTimerRef.current = setTimeout(() => {
+      setRecentlyDeleted(null)
+      undoTimerRef.current = null
+    }, 6000)
+  }
+
+  const undoDelete = async () => {
+    if (!recentlyDeleted) return
+    const restoreInput: CreateFilmEntryInput = {
+      title: recentlyDeleted.title,
+      releaseYear: recentlyDeleted.releaseYear,
+      dateWatched: recentlyDeleted.dateWatched,
+      rating: recentlyDeleted.rating,
+      tags: recentlyDeleted.tags,
+      notes: recentlyDeleted.notes,
+      isPublic: recentlyDeleted.isPublic,
+      metadata: { ...recentlyDeleted.metadata },
+    }
+    setRecentlyDeleted(null)
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current)
+      undoTimerRef.current = null
+    }
+    await addFilm(restoreInput)
   }
 
   const handleOpenEnrichmentQueue = () => {
@@ -154,8 +217,7 @@ export function LogPage() {
     try {
       const results = await searchTmdbMovies(query)
       setCandidateResults(results)
-    } catch (candidateError) {
-      console.error(candidateError)
+    } catch {
       setEnrichmentError('Could not search TMDb right now.')
     } finally {
       setIsSearchingCandidates(false)
@@ -205,13 +267,39 @@ export function LogPage() {
       })
       setLinkedCount((current) => current + 1)
       moveToNextQueueEntry()
-    } catch (linkError) {
-      console.error(linkError)
+    } catch {
       setEnrichmentError('Could not link this entry. Please try again.')
     } finally {
       setIsLinkingEntry(false)
     }
   }
+
+  const filteredFilms = useMemo(() => {
+    const query = recentFilters.query.trim().toLowerCase()
+    const tag = recentFilters.tag.trim().toLowerCase()
+    const minimumRating = recentFilters.minimumRating ? Number(recentFilters.minimumRating) : null
+
+    const matched = films.filter((film) => {
+      if (query && !film.title.toLowerCase().includes(query)) return false
+      if (tag && !film.tags.some((value) => value.toLowerCase().includes(tag))) return false
+      if (minimumRating !== null && (film.rating === null || film.rating < minimumRating)) return false
+      return true
+    })
+
+    return [...matched].sort((left, right) => {
+      switch (recentFilters.sort) {
+        case 'rating-high':
+          return (right.rating ?? -Infinity) - (left.rating ?? -Infinity)
+        case 'oldest':
+          return left.dateWatched.localeCompare(right.dateWatched)
+        case 'recent':
+        default:
+          return right.dateWatched.localeCompare(left.dateWatched)
+      }
+    })
+  }, [films, recentFilters])
+
+  const recentFiltersAreDefault = isDefaultRecent(recentFilters)
 
   if (!user) {
     return <p className="empty-state">Checking your session...</p>
@@ -221,10 +309,10 @@ export function LogPage() {
     <section className="page">
       <header className="page__hero">
         <span className="eyebrow">Log</span>
-        <h2 className="page__title">Capture the essentials while the film is still fresh.</h2>
+        <h2 className="page__title">{editingFilm ? 'Edit a log entry.' : 'Log a film.'}</h2>
         <p className="page__copy">
-          This first flow now separates taste tags from viewing metadata, so future
-          recommendations can focus on what you love rather than where you watched it.
+          Capture the essentials while the film is still fresh &mdash; tags,
+          ratings, and notes you&apos;ll thank yourself for later.
         </p>
       </header>
 
@@ -247,89 +335,18 @@ export function LogPage() {
         </section>
       ) : null}
 
-      {localImportMessage ? <p className="status-message">{localImportMessage}</p> : null}
-      {localImportError ? <p className="empty-state">{localImportError}</p> : null}
+      {localImportMessage ? <p className="alert alert--success">{localImportMessage}</p> : null}
+      {localImportError ? <p className="alert alert--error" role="alert">{localImportError}</p> : null}
 
-      <section className="panel import-panel">
-        <div className="panel__header">
-          <h3 className="panel__title">Temporary helper: Letterboxd import tagging</h3>
-          <p className="page__copy">
-            Need to quickly tag imported backlog entries? Open the Letterboxd import review page.
-          </p>
-          <p className="meta">
-            <Link to="/admin/import/letterboxd">Go to Letterboxd import review</Link>
-          </p>
+      {recentlyDeleted ? (
+        <div className="alert alert--success" role="status">
+          Deleted &ldquo;{recentlyDeleted.title}&rdquo;.
+          <div className="alert__actions">
+            <button className="button-secondary" type="button" onClick={() => void undoDelete()}>
+              Undo
+            </button>
+          </div>
         </div>
-      </section>
-
-      <section className="panel import-panel">
-        <div className="panel__header">
-          <h3 className="panel__title">Developer tool: Enrich existing entries</h3>
-          <p className="page__copy">
-            Review-only workflow for linking TMDb metadata to existing entries.
-            Nothing is linked unless you confirm each match.
-          </p>
-          <p className="meta">
-            {filmsWithoutTmdb.length} {filmsWithoutTmdb.length === 1 ? 'entry' : 'entries'} missing TMDb IDs.
-          </p>
-        </div>
-        <button
-          className="button-secondary"
-          type="button"
-          onClick={handleOpenEnrichmentQueue}
-          disabled={filmsWithoutTmdb.length === 0}
-        >
-          Enrich existing entries
-        </button>
-      </section>
-
-      {showEnrichment ? (
-        <section className="panel">
-          <header className="panel__header">
-            <h3 className="panel__title">Enrichment review queue</h3>
-            <p className="meta">
-              Progress: {Math.min(queueIndex, pendingEntries.length)} / {pendingEntries.length} reviewed · {linkedCount} linked · {skippedCount} skipped
-            </p>
-          </header>
-          {currentQueueEntry ? (
-            <div className="field">
-              <p><strong>Entry title:</strong> {currentQueueEntry.title}</p>
-              <div className="button-row">
-                <input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search TMDb title"
-                />
-                <button className="button-secondary" type="button" onClick={() => void handleSearchCandidates()} disabled={isSearchingCandidates}>
-                  {isSearchingCandidates ? 'Searching...' : 'Search Again'}
-                </button>
-                <button className="button-secondary" type="button" onClick={handleSkipEntry}>
-                  Skip
-                </button>
-              </div>
-              <div className="tag-row">
-                {candidateResults.map((candidate) => (
-                  <article key={candidate.id} className="panel" style={{ margin: '0.5rem 0', width: '100%' }}>
-                    <p><strong>{candidate.title}</strong> {candidate.release_date ? `(${candidate.release_date.slice(0, 4)})` : ''}</p>
-                    <p className="meta">Poster: {candidate.poster_path ? `https://image.tmdb.org/t/p/w342${candidate.poster_path}` : 'None'}</p>
-                    <p>{candidate.overview?.trim() ? candidate.overview : 'No overview provided by TMDb.'}</p>
-                    <button className="button-primary" type="button" disabled={isLinkingEntry} onClick={() => void handleLinkEntry(candidate)}>
-                      {isLinkingEntry ? 'Linking...' : 'Link'}
-                    </button>
-                  </article>
-                ))}
-              </div>
-              {candidateResults.length === 0 && !isSearchingCandidates ? (
-                <button className="button-secondary" type="button" onClick={() => void handleSearchCandidates(currentQueueEntry.title)}>
-                  Search TMDb for this title
-                </button>
-              ) : null}
-            </div>
-          ) : (
-            <p className="status-message">Queue complete. Linked {linkedCount} entries and skipped {skippedCount}.</p>
-          )}
-          {enrichmentError ? <p className="empty-state">{enrichmentError}</p> : null}
-        </section>
       ) : null}
 
       <div className="log-grid">
@@ -353,10 +370,10 @@ export function LogPage() {
             onCancel={editingFilm ? () => setEditingFilm(null) : undefined}
           />
 
-          {error ? <p className="empty-state">{error}</p> : null}
+          {error ? <p className="alert alert--error" role="alert">{error}</p> : null}
           {latestSavedFilm ? (
             <p className="status-message">
-              Saved "{latestSavedFilm.title}" to your log.
+              Saved &ldquo;{latestSavedFilm.title}&rdquo; to your log.
             </p>
           ) : null}
         </section>
@@ -366,16 +383,203 @@ export function LogPage() {
             <h3 className="panel__title">Recent films</h3>
             <p className="page__copy">Browse your most recently logged films.</p>
           </header>
-          <p className="meta">Showing {films.length} logged films.</p>
+
+          <div className="filter-grid filter-grid--compact">
+            <div className="field">
+              <label htmlFor="recentSearch">Title keyword</label>
+              <input
+                id="recentSearch"
+                type="text"
+                value={recentFilters.query}
+                placeholder="e.g. mood for love"
+                onChange={(event) =>
+                  setRecentFilters((current) => ({ ...current, query: event.target.value }))
+                }
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="recentTag">Tag</label>
+              <input
+                id="recentTag"
+                type="text"
+                value={recentFilters.tag}
+                placeholder="manual tag search"
+                onChange={(event) =>
+                  setRecentFilters((current) => ({ ...current, tag: event.target.value }))
+                }
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="recentMinRating">Minimum rating</label>
+              <select
+                id="recentMinRating"
+                value={recentFilters.minimumRating}
+                onChange={(event) =>
+                  setRecentFilters((current) => ({ ...current, minimumRating: event.target.value }))
+                }
+              >
+                <option value="">Any rating</option>
+                <option value="5">5.0</option>
+                <option value="4.5">4.5</option>
+                <option value="4">4.0</option>
+                <option value="3.5">3.5</option>
+                <option value="3">3.0</option>
+                <option value="2.5">2.5</option>
+                <option value="2">2.0</option>
+                <option value="1.5">1.5</option>
+                <option value="1">1.0</option>
+                <option value="0.5">0.5</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="recentSort">Sort</label>
+              <select
+                id="recentSort"
+                value={recentFilters.sort}
+                onChange={(event) =>
+                  setRecentFilters((current) => ({ ...current, sort: event.target.value as RecentSort }))
+                }
+              >
+                <option value="recent">Recently watched</option>
+                <option value="rating-high">Highest rated</option>
+                <option value="oldest">Oldest watched</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="filter-summary">
+            <p className="meta">
+              {filteredFilms.length} of {films.length} logged films
+            </p>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => setRecentFilters(defaultRecentFilters)}
+              disabled={recentFiltersAreDefault}
+            >
+              Reset filters
+            </button>
+          </div>
 
           <FilmList
-            films={films}
+            films={filteredFilms}
             isLoading={isLoading}
+            confirmingDeleteId={confirmingDeleteId}
             onEdit={setEditingFilm}
-            onDelete={handleDeleteFilm}
+            onRequestDelete={requestDelete}
+            onConfirmDelete={(film) => void confirmDelete(film)}
+            onCancelDelete={cancelDelete}
+            isFiltered={!recentFiltersAreDefault}
+            totalCount={films.length}
           />
         </section>
       </div>
+
+      <details className="panel panel--collapsible">
+        <summary className="panel__summary">Improve metadata for older entries</summary>
+        <div className="panel__collapsible-body">
+          <p className="page__copy">
+            {filmsWithoutTmdb.length} {filmsWithoutTmdb.length === 1 ? 'entry is' : 'entries are'} missing TMDb metadata.
+            Review-only workflow &mdash; nothing is linked unless you confirm each match.
+          </p>
+          <div className="button-row">
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={handleOpenEnrichmentQueue}
+              disabled={filmsWithoutTmdb.length === 0}
+            >
+              {showEnrichment ? 'Restart queue' : 'Open enrichment queue'}
+            </button>
+          </div>
+
+          {showEnrichment ? (
+            <section className="panel panel--nested">
+              <header className="panel__header">
+                <h3 className="panel__title">Enrichment review queue</h3>
+                <p className="meta">
+                  Progress: {Math.min(queueIndex, pendingEntries.length)} / {pendingEntries.length} reviewed &middot; {linkedCount} linked &middot; {skippedCount} skipped
+                </p>
+              </header>
+              {currentQueueEntry ? (
+                <div className="field">
+                  <p>
+                    <strong>Entry title:</strong> {currentQueueEntry.title}
+                  </p>
+                  <div className="button-row">
+                    <input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search TMDb title"
+                    />
+                    <button
+                      className="button-secondary"
+                      type="button"
+                      onClick={() => void handleSearchCandidates()}
+                      disabled={isSearchingCandidates}
+                    >
+                      {isSearchingCandidates ? 'Searching...' : 'Search again'}
+                    </button>
+                    <button className="button-secondary" type="button" onClick={handleSkipEntry}>
+                      Skip
+                    </button>
+                  </div>
+                  {candidateResults.length > 0 ? (
+                    <div className="tmdb-results">
+                      {candidateResults.map((candidate) => (
+                        <button
+                          key={candidate.id}
+                          type="button"
+                          className="tmdb-result"
+                          disabled={isLinkingEntry}
+                          onClick={() => void handleLinkEntry(candidate)}
+                        >
+                          {candidate.poster_path ? (
+                            <img
+                              className="tmdb-result__poster"
+                              src={`https://image.tmdb.org/t/p/w92${candidate.poster_path}`}
+                              alt=""
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="tmdb-result__poster tmdb-result__poster--placeholder">
+                              No poster
+                            </div>
+                          )}
+                          <div className="tmdb-result__main">
+                            <p className="tmdb-result__title">
+                              {candidate.title}
+                              {candidate.release_date ? ` (${candidate.release_date.slice(0, 4)})` : ''}
+                            </p>
+                            <p className="tmdb-result__meta">
+                              {candidate.overview?.trim() || 'No overview provided by TMDb.'}
+                            </p>
+                          </div>
+                          <span className="tmdb-result__cta">
+                            {isLinkingEntry ? 'Linking...' : 'Link'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {candidateResults.length === 0 && !isSearchingCandidates ? (
+                    <button
+                      className="button-secondary"
+                      type="button"
+                      onClick={() => void handleSearchCandidates(currentQueueEntry.title)}
+                    >
+                      Search TMDb for this title
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="status-message">Queue complete. Linked {linkedCount} entries and skipped {skippedCount}.</p>
+              )}
+              {enrichmentError ? <p className="alert alert--error" role="alert">{enrichmentError}</p> : null}
+            </section>
+          ) : null}
+        </div>
+      </details>
     </section>
   )
 }

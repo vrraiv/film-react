@@ -164,10 +164,10 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
         <div className="button-row">
           <input
             id="tmdbSearch"
+            className="tmdb-search-input"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Search movie title"
-            style={{ flex: 1, minWidth: 0 }}
           />
           <button className="button-secondary" type="button" onClick={() => void handleSearch()} disabled={isSearching}>
             {isSearching ? 'Searching...' : 'Search'}

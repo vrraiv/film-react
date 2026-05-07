@@ -12,6 +12,7 @@ type FilmCardProps = {
   showLink?: boolean
   showCollectionMeta?: boolean
   showActions?: boolean
+  explanation?: string
   onEdit?: (film: FilmEntry) => void
   onDelete?: (film: FilmEntry) => void
 }
@@ -29,6 +30,7 @@ export function FilmCard({
   showLink = false,
   showCollectionMeta = false,
   showActions = false,
+  explanation,
   onEdit,
   onDelete,
 }: FilmCardProps) {
@@ -67,7 +69,7 @@ export function FilmCard({
                 {showLink ? <Link to={`/film/${film.id}`}>{displayTitle}</Link> : displayTitle}
               </h3>
               <p className="meta">{film.releaseYear ? `${film.releaseYear} • ` : ''}Watched {formatDate(film.dateWatched)}</p>
-              {director ? <p className="meta">Director: {director}</p> : null}
+              {director ? <p className="film-card__director">Dir. {director}</p> : null}
             </div>
             <span className="film-card__rating" data-band={ratingBand}>{film.rating === null ? 'Unrated' : `${film.rating.toFixed(1)} / 5`}</span>
           </header>
@@ -118,6 +120,8 @@ export function FilmCard({
           ) : null}
 
           {film.notes ? <p className="film-card__notes">{film.notes}</p> : null}
+
+          {explanation ? <p className="film-card__explanation">{explanation}</p> : null}
 
           {showActions && onEdit && onDelete ? (
             <div className="film-card__actions">

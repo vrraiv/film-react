@@ -88,13 +88,17 @@ export function PublicTastePage() {
             <TasteSection title="Deep Cuts I Liked" items={browser.deepCuts} />
           ) : (
             <section className="panel">
-              <h3>Deep Cuts I Liked</h3>
+              <header className="panel__header">
+                <h3 className="panel__title">Deep Cuts I Liked</h3>
+              </header>
               <p className="meta">There is not enough popularity information for this filter yet.</p>
             </section>
           )}
           <TasteSection title="Not For Everyone" items={browser.notForEveryone} />
           <section className="panel">
-            <h3>If You Like This, Try This From My Diary</h3>
+            <header className="panel__header">
+              <h3 className="panel__title">If You Like This, Try This From My Diary</h3>
+            </header>
             <div className="field">
               <label htmlFor="seedFilm">Pick a film from the diary</label>
               <select id="seedFilm" value={selectedFilmId} onChange={(event) => setSelectedFilmId(event.target.value)}>
@@ -102,7 +106,7 @@ export function PublicTastePage() {
                 {browser.filtered.map((film) => <option key={film.id} value={film.id}>{film.title}</option>)}
               </select>
             </div>
-            {selectedFilmId ? <TasteSection title="You might also like from this diary" items={related} /> : null}
+            {selectedFilmId ? <TasteSection title="You might also like from this diary" items={related} flush /> : null}
           </section>
         </>
       ) : null}
@@ -110,19 +114,41 @@ export function PublicTastePage() {
   )
 }
 
-function TasteSection({ title, items }: { title: string; items: Array<{ film: FilmEntry; explanation: string }> }) {
-  return (
-    <section className="panel">
-      <h3>{title}</h3>
+function TasteSection({
+  title,
+  items,
+  flush = false,
+}: {
+  title: string
+  items: Array<{ film: FilmEntry; explanation: string }>
+  flush?: boolean
+}) {
+  const body = (
+    <>
       {items.length === 0 ? <p className="empty-state">No films match these filters yet.</p> : null}
       <div className="film-list">
         {items.map((item) => (
-          <div key={item.film.id}>
-            <FilmCard film={item.film} />
-            <p className="meta">{item.explanation}</p>
-          </div>
+          <FilmCard key={item.film.id} film={item.film} explanation={item.explanation} />
         ))}
       </div>
+    </>
+  )
+
+  if (flush) {
+    return (
+      <div className="taste-section taste-section--flush">
+        <h4 className="taste-section__subtitle">{title}</h4>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <section className="panel">
+      <header className="panel__header">
+        <h3 className="panel__title">{title}</h3>
+      </header>
+      {body}
     </section>
   )
 }

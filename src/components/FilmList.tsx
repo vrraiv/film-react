@@ -5,6 +5,7 @@ type FilmListProps = {
   films: FilmEntry[]
   isLoading: boolean
   confirmingDeleteId?: string | null
+  highlightedFilmId?: string | null
   onEdit: (film: FilmEntry) => void
   onRequestDelete: (film: FilmEntry) => void
   onConfirmDelete: (film: FilmEntry) => void
@@ -17,6 +18,7 @@ export function FilmList({
   films,
   isLoading,
   confirmingDeleteId = null,
+  highlightedFilmId = null,
   onEdit,
   onRequestDelete,
   onConfirmDelete,
@@ -57,7 +59,11 @@ export function FilmList({
   return (
     <div className="film-list">
       {films.map((film) => (
-        <div key={film.id} className="film-list__entry">
+        <div
+          key={film.id}
+          id={`film-entry-${film.id}`}
+          className={`film-list__entry${highlightedFilmId === film.id ? ' film-list__entry--highlight' : ''}`}
+        >
           <FilmCard
             film={film}
             showLink

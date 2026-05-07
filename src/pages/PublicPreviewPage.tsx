@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { FilmCard } from '../components/FilmCard'
 import { FilmFilters, type FilmFiltersState } from '../components/FilmFilters'
 import { fetchPublicFilmEntries } from '../services/publicFilmProfileService'
-import type { FilmEntry } from '../types/film'
+import type { FilmEntry, WatchContext } from '../types/film'
 
 const defaultFilters: FilmFiltersState = {
   titleQuery: '',
@@ -11,6 +11,7 @@ const defaultFilters: FilmFiltersState = {
   tagQuery: '',
   minimumRating: '',
   watchContext: '',
+  sort: 'recent',
 }
 
 const isDefaultFilters = (filters: FilmFiltersState) =>
@@ -19,7 +20,8 @@ const isDefaultFilters = (filters: FilmFiltersState) =>
   filters.directorQuery === defaultFilters.directorQuery &&
   filters.tagQuery === defaultFilters.tagQuery &&
   filters.minimumRating === defaultFilters.minimumRating &&
-  filters.watchContext === defaultFilters.watchContext
+  filters.watchContext === defaultFilters.watchContext &&
+  filters.sort === defaultFilters.sort
 
 const getDirector = (film: FilmEntry) =>
   film.tmdbMetadata?.director ?? film.metadata.tmdb?.director ?? ''
@@ -29,21 +31,55 @@ export function PublicPreviewPage() {
   const [filters, setFilters] = useState<FilmFiltersState>(defaultFilters)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>()
+    for (const film of films) {
+      for (const tag of film.tags) {
+        tags.add(tag)
+      }
+    }
+    return [...tags].sort((left, right) => left.localeCompare(right))
+  }, [films])
+
+  const availableWatchContexts = useMemo(() => {
+    const contexts = new Set<WatchContext>()
+    for (const film of films) {
+      const context = film.metadata.watchContext
+      if (context) {
+        contexts.add(context)
+      }
+    }
+    return [...contexts]
+  }, [films])
+
   const filteredFilms = useMemo(() => {
     const minimumRating = filters.minimumRating ? Number(filters.minimumRating) : null
     const titleQuery = filters.titleQuery.trim().toLowerCase()
     const yearQuery = filters.releaseYearQuery.trim()
-    const tagQuery = filters.tagQuery.trim().toLowerCase()
+    const tagQuery = filters.tagQuery
     const directorQuery = filters.directorQuery.trim().toLowerCase()
 
-    return films.filter((film) => {
+    const matched = films.filter((film) => {
       if (titleQuery && !film.title.toLowerCase().includes(titleQuery)) return false
       if (yearQuery && String(film.releaseYear ?? '').trim() !== yearQuery) return false
-      if (tagQuery && !film.tags.some((tag) => tag.toLowerCase().includes(tagQuery))) return false
+      if (tagQuery && !film.tags.includes(tagQuery)) return false
       if (directorQuery && !getDirector(film).toLowerCase().includes(directorQuery)) return false
       if (minimumRating !== null && (film.rating === null || film.rating < minimumRating)) return false
       if (filters.watchContext && film.metadata.watchContext !== filters.watchContext) return false
       return true
+    })
+
+    return [...matched].sort((left, right) => {
+      switch (filters.sort) {
+        case 'rating-high':
+          return (right.rating ?? -Infinity) - (left.rating ?? -Infinity)
+        case 'oldest':
+          return left.dateWatched.localeCompare(right.dateWatched)
+        case 'recent':
+        default:
+          return right.dateWatched.localeCompare(left.dateWatched)
+      }
     })
   }, [films, filters])
 
@@ -96,6 +132,8 @@ export function PublicPreviewPage() {
             onChange={setFilters}
             compact
             className="filter-grid--six-up"
+            availableTags={availableTags}
+            availableWatchContexts={availableWatchContexts}
           />
           <div className="filter-summary">
             <p className="meta">

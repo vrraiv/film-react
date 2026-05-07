@@ -1,6 +1,8 @@
-import { watchContextOptions } from '../config/filmOptions'
+import { formatFilmTag, watchContextOptions } from '../config/filmOptions'
 import { RATING_OPTIONS } from '../config/filmTags'
 import type { WatchContext } from '../types/film'
+
+export type FilmSort = 'recent' | 'rating-high' | 'oldest'
 
 export type FilmFiltersState = {
   titleQuery: string
@@ -9,6 +11,7 @@ export type FilmFiltersState = {
   tagQuery: string
   minimumRating: string
   watchContext: WatchContext | ''
+  sort: FilmSort
 }
 
 type FilmFiltersProps = {
@@ -16,12 +19,25 @@ type FilmFiltersProps = {
   onChange: (filters: FilmFiltersState) => void
   compact?: boolean
   className?: string
+  availableTags?: string[]
+  availableWatchContexts?: WatchContext[]
 }
 
-export function FilmFilters({ filters, onChange, compact = false, className }: FilmFiltersProps) {
+export function FilmFilters({
+  filters,
+  onChange,
+  compact = false,
+  className,
+  availableTags,
+  availableWatchContexts,
+}: FilmFiltersProps) {
   const classes = ['filter-grid', compact ? 'filter-grid--compact' : '', className ?? '']
     .filter(Boolean)
     .join(' ')
+
+  const visibleWatchContexts = availableWatchContexts
+    ? watchContextOptions.filter((option) => availableWatchContexts.includes(option.value))
+    : watchContextOptions
 
   return (
     <div className={classes}>
@@ -66,15 +82,20 @@ export function FilmFilters({ filters, onChange, compact = false, className }: F
 
       <div className="field">
         <label htmlFor="filterTag">Tag</label>
-        <input
+        <select
           id="filterTag"
-          type="text"
           value={filters.tagQuery}
-          placeholder="manual tag search"
           onChange={(event) =>
             onChange({ ...filters, tagQuery: event.target.value })
           }
-        />
+        >
+          <option value="">All tags</option>
+          {(availableTags ?? []).map((tagId) => (
+            <option key={tagId} value={tagId}>
+              {formatFilmTag(tagId)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="field">
@@ -108,11 +129,26 @@ export function FilmFilters({ filters, onChange, compact = false, className }: F
           }
         >
           <option value="">All contexts</option>
-          {watchContextOptions.map((option) => (
+          {visibleWatchContexts.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="filterSort">Sort</label>
+        <select
+          id="filterSort"
+          value={filters.sort}
+          onChange={(event) =>
+            onChange({ ...filters, sort: event.target.value as FilmSort })
+          }
+        >
+          <option value="recent">Recently watched</option>
+          <option value="rating-high">Highest rated</option>
+          <option value="oldest">Oldest watched</option>
         </select>
       </div>
     </div>

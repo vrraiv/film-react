@@ -4,16 +4,46 @@ import { FilmCard } from './FilmCard'
 type FilmListProps = {
   films: FilmEntry[]
   isLoading: boolean
+  confirmingDeleteId?: string | null
   onEdit: (film: FilmEntry) => void
-  onDelete: (film: FilmEntry) => void
+  onRequestDelete: (film: FilmEntry) => void
+  onConfirmDelete: (film: FilmEntry) => void
+  onCancelDelete: () => void
+  isFiltered?: boolean
+  totalCount?: number
 }
 
-export function FilmList({ films, isLoading, onEdit, onDelete }: FilmListProps) {
+export function FilmList({
+  films,
+  isLoading,
+  confirmingDeleteId = null,
+  onEdit,
+  onRequestDelete,
+  onConfirmDelete,
+  onCancelDelete,
+  isFiltered = false,
+  totalCount,
+}: FilmListProps) {
   if (isLoading) {
-    return <p className="empty-state">Loading your film log...</p>
+    return (
+      <div className="skeleton-list" aria-busy="true" aria-label="Loading your film log">
+        <div className="skeleton-card skeleton-card--card" />
+        <div className="skeleton-card skeleton-card--card" />
+        <div className="skeleton-card skeleton-card--card" />
+      </div>
+    )
   }
 
   if (films.length === 0) {
+    if (isFiltered && (totalCount ?? 0) > 0) {
+      return (
+        <div className="placeholder-card placeholder-card--warning" role="status">
+          <strong>No matches.</strong>
+          <p className="empty-state">No logged films match these filters.</p>
+        </div>
+      )
+    }
+
     return (
       <div className="placeholder-card">
         <strong>No films logged yet.</strong>
@@ -27,15 +57,40 @@ export function FilmList({ films, isLoading, onEdit, onDelete }: FilmListProps) 
   return (
     <div className="film-list">
       {films.map((film) => (
-        <FilmCard
-          key={film.id}
-          film={film}
-          showLink
-          showCollectionMeta
-          showActions
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+        <div key={film.id} className="film-list__entry">
+          <FilmCard
+            film={film}
+            showLink
+            showCollectionMeta
+            showActions
+            onEdit={onEdit}
+            onDelete={onRequestDelete}
+          />
+          {confirmingDeleteId === film.id ? (
+            <div className="film-list__confirm" role="alertdialog" aria-label={`Confirm deletion of ${film.title}`}>
+              <p>
+                Delete &ldquo;<strong>{film.title}</strong>&rdquo; from your log?
+              </p>
+              <div className="button-row">
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={onCancelDelete}
+                  autoFocus
+                >
+                  Cancel
+                </button>
+                <button
+                  className="button-secondary button-secondary--danger"
+                  type="button"
+                  onClick={() => onConfirmDelete(film)}
+                >
+                  Confirm delete
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       ))}
     </div>
   )

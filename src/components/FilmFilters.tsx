@@ -1,4 +1,5 @@
 import { watchContextOptions } from '../config/filmOptions'
+import { RATING_OPTIONS } from '../config/filmTags'
 import type { WatchContext } from '../types/film'
 
 export type FilmFiltersState = {
@@ -14,18 +15,23 @@ type FilmFiltersProps = {
   filters: FilmFiltersState
   onChange: (filters: FilmFiltersState) => void
   compact?: boolean
+  className?: string
 }
 
-export function FilmFilters({ filters, onChange, compact = false }: FilmFiltersProps) {
+export function FilmFilters({ filters, onChange, compact = false, className }: FilmFiltersProps) {
+  const classes = ['filter-grid', compact ? 'filter-grid--compact' : '', className ?? '']
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className={['filter-grid', compact ? 'filter-grid--compact' : ''].filter(Boolean).join(' ')}>
+    <div className={classes}>
       <div className="field">
         <label htmlFor="filterTitle">Title keyword</label>
         <input
           id="filterTitle"
           type="text"
           value={filters.titleQuery}
-          placeholder="e.g. alien"
+          placeholder="e.g. Alien"
           onChange={(event) =>
             onChange({ ...filters, titleQuery: event.target.value })
           }
@@ -45,20 +51,18 @@ export function FilmFilters({ filters, onChange, compact = false }: FilmFiltersP
         />
       </div>
 
-      {!compact ? (
-        <div className="field">
+      <div className="field">
         <label htmlFor="filterDirector">Director</label>
         <input
           id="filterDirector"
           type="text"
           value={filters.directorQuery}
-          placeholder="e.g. ridley scott"
+          placeholder="e.g. Ridley Scott"
           onChange={(event) =>
             onChange({ ...filters, directorQuery: event.target.value })
           }
         />
-        </div>
-      ) : null}
+      </div>
 
       <div className="field">
         <label htmlFor="filterTag">Tag</label>
@@ -83,12 +87,11 @@ export function FilmFilters({ filters, onChange, compact = false }: FilmFiltersP
           }
         >
           <option value="">Any rating</option>
-          <option value="5">5.0</option>
-          <option value="4.5">4.5</option>
-          <option value="4">4.0</option>
-          <option value="3.5">3.5</option>
-          <option value="3">3.0</option>
-          <option value="2.5">2.5</option>
+          {RATING_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
 

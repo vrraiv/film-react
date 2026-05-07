@@ -40,6 +40,7 @@ export function FilmCard({
   const visibleTags = isTagListExpanded ? formattedTags : formattedTags.slice(0, readonlyTagLimit)
   const hiddenTagCount = Math.max(0, formattedTags.length - readonlyTagLimit)
   const tagListLabel = formattedTags.map((tag) => tag.label).join(', ')
+  const ratingBand = film.rating === null ? undefined : film.rating >= 4 ? 'high' : film.rating <= 2 ? 'low' : undefined
 
   return (
     <article className="film-card" key={film.id}>
@@ -68,7 +69,7 @@ export function FilmCard({
               <p className="meta">{film.releaseYear ? `${film.releaseYear} • ` : ''}Watched {formatDate(film.dateWatched)}</p>
               {director ? <p className="meta">Director: {director}</p> : null}
             </div>
-            <span className="film-card__rating">{film.rating === null ? 'Unrated' : `${film.rating.toFixed(1)} / 5`}</span>
+            <span className="film-card__rating" data-band={ratingBand}>{film.rating === null ? 'Unrated' : `${film.rating.toFixed(1)} / 5`}</span>
           </header>
 
           {film.tags.length > 0 ? (
@@ -120,10 +121,20 @@ export function FilmCard({
 
           {showActions && onEdit && onDelete ? (
             <div className="film-card__actions">
-              <button className="button-secondary" type="button" onClick={() => onEdit(film)}>
+              <button
+                className="button-secondary"
+                type="button"
+                aria-label={`Edit ${displayTitle}`}
+                onClick={() => onEdit(film)}
+              >
                 Edit
               </button>
-              <button className="button-secondary button-secondary--danger" type="button" onClick={() => onDelete(film)}>
+              <button
+                className="button-secondary button-secondary--danger"
+                type="button"
+                aria-label={`Delete ${displayTitle}`}
+                onClick={() => onDelete(film)}
+              >
                 Delete
               </button>
             </div>

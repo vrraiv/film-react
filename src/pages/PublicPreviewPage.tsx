@@ -13,6 +13,17 @@ const defaultFilters: FilmFiltersState = {
   watchContext: '',
 }
 
+const isDefaultFilters = (filters: FilmFiltersState) =>
+  filters.titleQuery === defaultFilters.titleQuery &&
+  filters.releaseYearQuery === defaultFilters.releaseYearQuery &&
+  filters.directorQuery === defaultFilters.directorQuery &&
+  filters.tagQuery === defaultFilters.tagQuery &&
+  filters.minimumRating === defaultFilters.minimumRating &&
+  filters.watchContext === defaultFilters.watchContext
+
+const getDirector = (film: FilmEntry) =>
+  film.tmdbMetadata?.director ?? film.metadata.tmdb?.director ?? ''
+
 export function PublicPreviewPage() {
   const [films, setFilms] = useState<FilmEntry[]>([])
   const [filters, setFilters] = useState<FilmFiltersState>(defaultFilters)
@@ -23,16 +34,21 @@ export function PublicPreviewPage() {
     const titleQuery = filters.titleQuery.trim().toLowerCase()
     const yearQuery = filters.releaseYearQuery.trim()
     const tagQuery = filters.tagQuery.trim().toLowerCase()
+    const directorQuery = filters.directorQuery.trim().toLowerCase()
 
     return films.filter((film) => {
       if (titleQuery && !film.title.toLowerCase().includes(titleQuery)) return false
       if (yearQuery && String(film.releaseYear ?? '').trim() !== yearQuery) return false
       if (tagQuery && !film.tags.some((tag) => tag.toLowerCase().includes(tagQuery))) return false
+      if (directorQuery && !getDirector(film).toLowerCase().includes(directorQuery)) return false
       if (minimumRating !== null && (film.rating === null || film.rating < minimumRating)) return false
       if (filters.watchContext && film.metadata.watchContext !== filters.watchContext) return false
       return true
     })
   }, [films, filters])
+
+  const filtersAreDefault = isDefaultFilters(filters)
+  const resetFilters = () => setFilters(defaultFilters)
 
   useEffect(() => {
     let isMounted = true
@@ -47,9 +63,7 @@ export function PublicPreviewPage() {
         if (isMounted) {
           setFilms(nextFilms)
         }
-      } catch (loadError) {
-        console.error(loadError)
-
+      } catch {
         if (isMounted) {
           setError('We could not load the film diary right now.')
         }
@@ -70,20 +84,43 @@ export function PublicPreviewPage() {
   return (
     <section className="page">
       <header className="page__hero">
-        <span className="eyebrow">Film diary</span>
-        <h2 className="page__title">Here&apos;s what I&apos;ve logged recently.</h2>
+        <span className="eyebrow">Film Diary</span>
+        <h2 className="page__title">Film diary.</h2>
         <p className="page__copy">
-          Browse recent watches, ratings, and notes. Looking for something to
+          Recent watches, ratings, and notes &mdash; looking for something to
           watch? Start here.
         </p>
         <div className="diary-filters">
-          <FilmFilters filters={filters} onChange={setFilters} compact />
-          <p className="meta">Showing {filteredFilms.length} of {films.length} films.</p>
+          <FilmFilters
+            filters={filters}
+            onChange={setFilters}
+            compact
+            className="filter-grid--six-up"
+          />
+          <div className="filter-summary">
+            <p className="meta">
+              {filteredFilms.length} of {films.length} films
+            </p>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={resetFilters}
+              disabled={filtersAreDefault}
+            >
+              Reset filters
+            </button>
+          </div>
         </div>
       </header>
 
-      {isLoading ? <p className="empty-state">Loading recent watches...</p> : null}
-      {error ? <p className="empty-state">{error}</p> : null}
+      {isLoading ? (
+        <div className="skeleton-list" aria-busy="true" aria-label="Loading recent watches">
+          <div className="skeleton-card skeleton-card--card" />
+          <div className="skeleton-card skeleton-card--card" />
+          <div className="skeleton-card skeleton-card--card" />
+        </div>
+      ) : null}
+      {error ? <p className="alert alert--error" role="alert">{error}</p> : null}
 
       {!isLoading && !error && films.length === 0 ? (
         <div className="placeholder-card">
@@ -95,16 +132,19 @@ export function PublicPreviewPage() {
       ) : null}
 
       {!isLoading && !error && films.length > 0 && filteredFilms.length === 0 ? (
-        <div className="placeholder-card">
-          <strong>No matches yet.</strong>
-          <p className="empty-state">Try a broader search or clear one of the filters.</p>
+        <div className="placeholder-card placeholder-card--warning" role="status">
+          <strong>No matches.</strong>
+          <p className="empty-state">Your current filters return zero films.</p>
+          <button className="button-secondary" type="button" onClick={resetFilters}>
+            Reset filters
+          </button>
         </div>
       ) : null}
 
       {!isLoading && !error && filteredFilms.length > 0 ? (
         <div className="film-list">
           {filteredFilms.map((film) => (
-            <FilmCard key={film.id} film={film} />
+            <FilmCard key={film.id} film={film} showLink />
           ))}
         </div>
       ) : null}

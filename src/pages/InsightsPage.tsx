@@ -281,11 +281,20 @@ export function InsightsPage() {
           <section className="shell-card">
             <h3>Rewatch stats</h3>
             {insights.rewatchStats.filmsWithRewatches ? (
-              <ul className="insight-list">
-                <li>Films logged multiple times: {insights.rewatchStats.filmsWithRewatches}</li>
-                <li>Average first watch: {insights.rewatchStats.averageFirstWatch === null ? 'N/A' : `${insights.rewatchStats.averageFirstWatch.toFixed(1)} / 5`}</li>
-                <li>Average of all watches: {insights.rewatchStats.averageAllWatches === null ? 'N/A' : `${insights.rewatchStats.averageAllWatches.toFixed(1)} / 5`}</li>
-              </ul>
+              <>
+                <ul className="insight-list">
+                  <li>Films logged multiple times: {insights.rewatchStats.filmsWithRewatches}</li>
+                  <li>Average first watch: {insights.rewatchStats.averageFirstWatch === null ? 'N/A' : `${insights.rewatchStats.averageFirstWatch.toFixed(1)} / 5`}</li>
+                  <li>Average of all watches: {insights.rewatchStats.averageAllWatches === null ? 'N/A' : `${insights.rewatchStats.averageAllWatches.toFixed(1)} / 5`}</li>
+                </ul>
+                <details className="field__hint-details">
+                  <summary>What's the difference?</summary>
+                  <p>
+                    <em>First watch</em> averages only the log marked as the first viewing of each film.{' '}
+                    <em>All watches</em> averages every log of every film &mdash; rewatches included &mdash; so it shifts as opinions settle.
+                  </p>
+                </details>
+              </>
             ) : (
               <p className="page__copy">No rewatches with high-confidence TMDb matches yet.</p>
             )}
@@ -298,7 +307,7 @@ export function InsightsPage() {
                 {insights.topTagsByAverageRating.map((item) => (
                   <li key={item.tag}>
                     {formatFilmTag(item.tag)}: <strong>{item.averageRating.toFixed(1)}</strong>{' '}
-                    <span className="meta">({item.appearances} rated film{item.appearances === 1 ? '' : 's'})</span>
+                    <span className="meta-pill meta-pill--soft">{item.appearances} rated</span>
                   </li>
                 ))}
               </ol>

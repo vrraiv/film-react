@@ -121,10 +121,10 @@ export function PublicPreviewPage() {
     <section className="page">
       <header className="page__hero">
         <span className="eyebrow">Film Diary</span>
-        <h2 className="page__title">Film diary.</h2>
+        <h2 className="page__title">My film diary.</h2>
         <p className="page__copy">
-          Recent watches, ratings, and notes &mdash; looking for something to
-          watch? Start here.
+          Recent watches, ratings, and notes from films I&rsquo;ve been meaning
+          to track &mdash; looking for something to watch? Start here.
         </p>
         <div className="diary-filters">
           <FilmFilters

@@ -214,7 +214,7 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
         <label htmlFor="title">
           Film title<span className="field__required" aria-label="required">*</span>
         </label>
-        <input id="title" name="title" value={form.title} onChange={handleChange('title')} placeholder="In the Mood for Love" autoComplete="off" required />
+        <input id="title" name="title" value={form.title} onChange={handleChange('title')} placeholder="In the Mood for Love" autoComplete="off" required autoFocus />
       </div>
 
       <div className="form-grid__row">

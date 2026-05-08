@@ -4,6 +4,7 @@ import { FilmForm } from '../components/FilmForm'
 import { FilmList } from '../components/FilmList'
 import { useFilms } from '../hooks/useFilms'
 import { createSupabaseFilmLogService } from '../services/filmLogService'
+import { useToast } from '../toast/useToast'
 import {
   getLocalFilmImportStatus,
   importLocalFilmsToService,
@@ -35,6 +36,7 @@ const isDefaultRecent = (filters: RecentFilters) =>
 
 export function LogPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const filmLogService = useMemo(
     () => (user ? createSupabaseFilmLogService(user.id) : undefined),
     [user?.id],
@@ -59,9 +61,7 @@ export function LogPage() {
   const [enrichmentError, setEnrichmentError] = useState<string | null>(null)
   const [recentFilters, setRecentFilters] = useState<RecentFilters>(defaultRecentFilters)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
-  const [recentlyDeleted, setRecentlyDeleted] = useState<FilmEntry | null>(null)
   const [highlightedFilmId, setHighlightedFilmId] = useState<string | null>(null)
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const enrichmentDialogRef = useRef<HTMLDialogElement>(null)
   const enrichmentTriggerRef = useRef<HTMLButtonElement>(null)
@@ -122,9 +122,6 @@ export function LogPage() {
   }, [showEnrichment, queueIndex, currentQueueEntry?.id])
 
   useEffect(() => () => {
-    if (undoTimerRef.current) {
-      clearTimeout(undoTimerRef.current)
-    }
     if (highlightTimerRef.current) {
       clearTimeout(highlightTimerRef.current)
     }
@@ -194,6 +191,20 @@ export function LogPage() {
     setConfirmingDeleteId(null)
   }
 
+  const undoDelete = async (film: FilmEntry) => {
+    const restoreInput: CreateFilmEntryInput = {
+      title: film.title,
+      releaseYear: film.releaseYear,
+      dateWatched: film.dateWatched,
+      rating: film.rating,
+      tags: film.tags,
+      notes: film.notes,
+      isPublic: film.isPublic,
+      metadata: { ...film.metadata },
+    }
+    await addFilm(restoreInput)
+  }
+
   const confirmDelete = async (film: FilmEntry) => {
     setConfirmingDeleteId(null)
     const succeeded = await deleteFilm(film.id)
@@ -203,34 +214,11 @@ export function LogPage() {
       setEditingFilm(null)
     }
 
-    setRecentlyDeleted(film)
-    if (undoTimerRef.current) {
-      clearTimeout(undoTimerRef.current)
-    }
-    undoTimerRef.current = setTimeout(() => {
-      setRecentlyDeleted(null)
-      undoTimerRef.current = null
-    }, 6000)
-  }
-
-  const undoDelete = async () => {
-    if (!recentlyDeleted) return
-    const restoreInput: CreateFilmEntryInput = {
-      title: recentlyDeleted.title,
-      releaseYear: recentlyDeleted.releaseYear,
-      dateWatched: recentlyDeleted.dateWatched,
-      rating: recentlyDeleted.rating,
-      tags: recentlyDeleted.tags,
-      notes: recentlyDeleted.notes,
-      isPublic: recentlyDeleted.isPublic,
-      metadata: { ...recentlyDeleted.metadata },
-    }
-    setRecentlyDeleted(null)
-    if (undoTimerRef.current) {
-      clearTimeout(undoTimerRef.current)
-      undoTimerRef.current = null
-    }
-    await addFilm(restoreInput)
+    showToast(`Deleted “${film.title}”.`, {
+      variant: 'success',
+      durationMs: 6000,
+      action: { label: 'Undo', onAction: () => void undoDelete(film) },
+    })
   }
 
   const handleOpenEnrichmentQueue = () => {
@@ -374,17 +362,6 @@ export function LogPage() {
 
       {localImportMessage ? <p className="alert alert--success">{localImportMessage}</p> : null}
       {localImportError ? <p className="alert alert--error" role="alert">{localImportError}</p> : null}
-
-      {recentlyDeleted ? (
-        <div className="alert alert--success" role="status">
-          Deleted &ldquo;{recentlyDeleted.title}&rdquo;.
-          <div className="alert__actions">
-            <button className="button-secondary" type="button" onClick={() => void undoDelete()}>
-              Undo
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <div className="log-grid">
         <section className="panel">

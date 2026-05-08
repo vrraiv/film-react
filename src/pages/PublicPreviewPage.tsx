@@ -126,28 +126,26 @@ export function PublicPreviewPage() {
           Recent watches, ratings, and notes from films I&rsquo;ve been meaning
           to track &mdash; looking for something to watch? Start here.
         </p>
-        <div className="diary-filters">
-          <FilmFilters
-            filters={filters}
-            onChange={setFilters}
-            compact
-            className="filter-grid--six-up"
-            availableTags={availableTags}
-            availableWatchContexts={availableWatchContexts}
-          />
-          <div className="filter-summary">
-            <p className="meta">
-              {filteredFilms.length} of {films.length} films
-            </p>
-            <button
-              className="button-secondary"
-              type="button"
-              onClick={resetFilters}
-              disabled={filtersAreDefault}
-            >
-              Reset filters
-            </button>
-          </div>
+        <FilmFilters
+          filters={filters}
+          onChange={setFilters}
+          compact
+          className="filter-grid--six-up"
+          availableTags={availableTags}
+          availableWatchContexts={availableWatchContexts}
+        />
+        <div className="filter-summary">
+          <p className="meta">
+            {filteredFilms.length} of {films.length} films
+          </p>
+          <button
+            className="button-secondary"
+            type="button"
+            onClick={resetFilters}
+            disabled={filtersAreDefault}
+          >
+            Reset filters
+          </button>
         </div>
       </header>
 

@@ -226,7 +226,7 @@ export function InsightsPage() {
             <h3>Average rating</h3>
             <p className="page__copy">
               {insights.averageRating === null
-                ? 'More insights will appear as more films are rated.'
+                ? 'No ratings yet — log a rating on any film to see your average.'
                 : `${insights.averageRating.toFixed(1)} / 5`}
             </p>
           </section>

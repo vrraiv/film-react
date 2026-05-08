@@ -339,7 +339,7 @@ export function LogPage() {
   const recentFiltersAreDefault = isDefaultRecent(recentFilters)
 
   if (!user) {
-    return <p className="empty-state">Checking your session...</p>
+    return <p className="empty-state">Checking your session…</p>
   }
 
   return (
@@ -354,7 +354,7 @@ export function LogPage() {
       </header>
 
       {showLocalImport ? (
-        <section className="panel import-panel">
+        <section className="panel">
           <div className="panel__header">
             <h3 className="panel__title">Import local films</h3>
             <p className="page__copy">
@@ -367,7 +367,7 @@ export function LogPage() {
             disabled={isImportingLocalFilms || isCheckingLocalImport}
             onClick={() => void handleImportLocalFilms()}
           >
-            {isImportingLocalFilms ? 'Importing...' : 'Import to Supabase'}
+            {isImportingLocalFilms ? 'Importing…' : 'Import to Supabase'}
           </button>
         </section>
       ) : null}
@@ -570,7 +570,7 @@ export function LogPage() {
                   onClick={() => void handleSearchCandidates()}
                   disabled={isSearchingCandidates}
                 >
-                  {isSearchingCandidates ? 'Searching...' : 'Search again'}
+                  {isSearchingCandidates ? 'Searching…' : 'Search again'}
                 </button>
                 <button className="button-secondary" type="button" onClick={handleSkipEntry}>
                   Skip
@@ -608,7 +608,7 @@ export function LogPage() {
                         </p>
                       </div>
                       <span className="tmdb-result__cta">
-                        {isLinkingEntry ? 'Linking...' : 'Link'}
+                        {isLinkingEntry ? 'Linking…' : 'Link'}
                       </span>
                     </button>
                   ))}

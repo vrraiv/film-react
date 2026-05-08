@@ -5,6 +5,28 @@ import { RATING_OPTIONS } from '../config/filmTags'
 import { useFilms } from '../hooks/useFilms'
 import { fetchPublicFilmEntries } from '../services/publicFilmProfileService'
 import type { FilmEntry } from '../types/film'
+import {
+  getRangeForPreset,
+  isWithinRange,
+  type PeriodPreset,
+} from '../utils/dateRange'
+
+const periodLabel = (
+  preset: PeriodPreset,
+  custom: { start: string; end: string },
+): string => {
+  switch (preset) {
+    case 'all':
+      return 'All time'
+    case 'this-year':
+      return `${new Date().getFullYear()} so far`
+    case 'last-90-days':
+      return 'Last 90 days'
+    case 'custom':
+      if (!custom.start || !custom.end) return 'Custom range'
+      return `${custom.start} → ${custom.end}`
+  }
+}
 
 type RewatchAggregate = {
   total: number
@@ -24,8 +46,23 @@ export function InsightsPage() {
   const [publicFilms, setPublicFilms] = useState<FilmEntry[]>([])
   const [isLoadingPublicFilms, setIsLoadingPublicFilms] = useState(false)
   const [publicError, setPublicError] = useState<string | null>(null)
+  const [period, setPeriod] = useState<PeriodPreset>('all')
+  const [customRange, setCustomRange] = useState<{ start: string; end: string }>({
+    start: '',
+    end: '',
+  })
   const films = user ? privateFilms : publicFilms
   const isLoading = user ? isLoadingPrivateFilms : authLoading || isLoadingPublicFilms
+
+  const range = useMemo(
+    () => getRangeForPreset(period, customRange),
+    [period, customRange],
+  )
+
+  const scopedFilms = useMemo(
+    () => films.filter((film) => isWithinRange(film.dateWatched, range)),
+    [films, range],
+  )
 
   useEffect(() => {
     if (authLoading || user) {
@@ -63,7 +100,7 @@ export function InsightsPage() {
   }, [authLoading, user])
 
   const insights = useMemo(() => {
-    const sortedFilms = [...films].sort((left, right) => {
+    const sortedFilms = [...scopedFilms].sort((left, right) => {
       const dateComparison = right.dateWatched.localeCompare(left.dateWatched)
 
       if (dateComparison !== 0) {
@@ -135,7 +172,7 @@ export function InsightsPage() {
       .sort((left, right) => right.averageRating - left.averageRating || right.appearances - left.appearances)
       .slice(0, 5)
 
-    const firstWatchCount = films.filter((film) => film.metadata.firstWatch === true).length
+    const firstWatchCount = scopedFilms.filter((film) => film.metadata.firstWatch === true).length
 
     const rewatchGroups = [...groupsByTmdbId.values()].filter((logs) => logs.length > 1)
 
@@ -171,7 +208,7 @@ export function InsightsPage() {
     }
 
     return {
-      totalFilmsLogged: films.length,
+      totalFilmsLogged: scopedFilms.length,
       firstWatchCount,
       averageRating,
       ratingDistribution,
@@ -180,7 +217,7 @@ export function InsightsPage() {
       topTagsByAverageRating,
       rewatchStats,
     }
-  }, [films])
+  }, [scopedFilms])
 
   const histogramSummary = useMemo(() => {
     if (!insights.ratedCount) return ''
@@ -200,7 +237,45 @@ export function InsightsPage() {
             ? 'A snapshot of how you rate, rewatch, and tag the films you log.'
             : 'A quick look at what shows up most often in the shared film diary.'}
         </p>
-        {!user ? <span className="meta-pill">Public preview</span> : null}
+        <div className="insights-period">
+          <label htmlFor="insightsPeriod">Period</label>
+          <select
+            id="insightsPeriod"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value as PeriodPreset)}
+          >
+            <option value="all">All time</option>
+            <option value="this-year">This year</option>
+            <option value="last-90-days">Last 90 days</option>
+            <option value="custom">Custom range…</option>
+          </select>
+          {period === 'custom' ? (
+            <>
+              <input
+                type="date"
+                aria-label="Start date"
+                value={customRange.start}
+                onChange={(event) =>
+                  setCustomRange((current) => ({ ...current, start: event.target.value }))
+                }
+              />
+              <input
+                type="date"
+                aria-label="End date"
+                value={customRange.end}
+                onChange={(event) =>
+                  setCustomRange((current) => ({ ...current, end: event.target.value }))
+                }
+              />
+            </>
+          ) : null}
+        </div>
+        <div className="insights-pills">
+          {!user ? <span className="meta-pill">Public preview</span> : null}
+          {period !== 'all' ? (
+            <span className="meta-pill meta-pill--soft">{periodLabel(period, customRange)}</span>
+          ) : null}
+        </div>
       </header>
 
       {publicError ? <p className="alert alert--error" role="alert">{publicError}</p> : null}
@@ -226,7 +301,7 @@ export function InsightsPage() {
             <h3>Average rating</h3>
             <p className="page__copy">
               {insights.averageRating === null
-                ? 'More insights will appear as more films are rated.'
+                ? 'No ratings yet — log a rating on any film to see your average.'
                 : `${insights.averageRating.toFixed(1)} / 5`}
             </p>
           </section>

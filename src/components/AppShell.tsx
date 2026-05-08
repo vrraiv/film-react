@@ -94,11 +94,14 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <footer className="app-shell__footer" aria-label="TMDB attribution">
-        <img className="app-shell__tmdb-logo" src="/tmdb-logo.svg" alt="The Movie DB logo" />
-        <p className="app-shell__tmdb-note">
-          Thanks to TMDB for providing access to their database for movie posters and movie data.
-        </p>
+      <footer className="app-shell__footer" aria-label="Site footer">
+        <p className="app-shell__footer-note">A personal film diary kept by {appConfig.appTitle}.</p>
+        <div className="app-shell__tmdb-attribution" aria-label="TMDB attribution">
+          <img className="app-shell__tmdb-logo" src="/tmdb-logo.svg" alt="The Movie DB logo" />
+          <p className="app-shell__tmdb-note">
+            Thanks to TMDB for providing access to their database for movie posters and movie data.
+          </p>
+        </div>
       </footer>
     </div>
   )

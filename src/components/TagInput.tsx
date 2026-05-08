@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   FILM_TAGS,
   TAG_CATEGORIES,
@@ -12,6 +13,9 @@ type TagInputProps = {
 
 export function TagInput({ selectedTags, onChange }: TagInputProps) {
   const selectedSet = new Set(selectedTags)
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({})
+  const toggleCategory = (id: string) =>
+    setOpenCategories((current) => ({ ...current, [id]: !current[id] }))
 
   const toggleTag = (tagId: string) => {
     if (selectedSet.has(tagId)) {
@@ -62,29 +66,44 @@ export function TagInput({ selectedTags, onChange }: TagInputProps) {
           ).length
           const isAtLimit = selectedInCategory >= category.maxSelected
 
+          const isOpen = openCategories[category.id] ?? false
+          const groupId = `tag-group-${category.id}`
           return (
             <div key={category.id} className="tag-suggestion-group">
-              <div className="tag-suggestion-group__header">
-                <strong>{category.label}</strong>
-                <span className="meta">{category.description} ({selectedInCategory}/{category.maxSelected})</span>
-              </div>
-              <div className="tag-row">
-                {categoryTags.map((tag) => {
-                  const selected = selectedSet.has(tag.id)
-                  return (
-                    <button
-                      key={tag.id}
-                      className="tag-chip tag-chip--suggestion"
-                      type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      disabled={!selected && isAtLimit}
-                      aria-pressed={selected}
-                    >
-                      {tag.label}
-                    </button>
-                  )
-                })}
-              </div>
+              <button
+                type="button"
+                className="tag-suggestion-group__header"
+                aria-expanded={isOpen}
+                aria-controls={groupId}
+                onClick={() => toggleCategory(category.id)}
+              >
+                <span className="tag-suggestion-group__heading">
+                  <strong>{category.label}</strong>
+                  <span className="meta">{category.description}</span>
+                </span>
+                <span className="tag-suggestion-group__count">
+                  {selectedInCategory}/{category.maxSelected}
+                </span>
+              </button>
+              {isOpen ? (
+                <div className="tag-row" id={groupId}>
+                  {categoryTags.map((tag) => {
+                    const selected = selectedSet.has(tag.id)
+                    return (
+                      <button
+                        key={tag.id}
+                        className="tag-chip tag-chip--suggestion"
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        disabled={!selected && isAtLimit}
+                        aria-pressed={selected}
+                      >
+                        {tag.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
             </div>
           )
         })}

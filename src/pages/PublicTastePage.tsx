@@ -80,20 +80,34 @@ export function PublicTastePage() {
       {error ? <p className="alert alert--error" role="alert">{error}</p> : null}
 
       {!isLoading && !error ? (
-        <>
+        <div
+          className="taste-results"
+          key={`${filters.tagOrMood}-${filters.runtimeBucket}`}
+        >
+          <nav className="section-anchors" aria-label="Sections">
+            <a href="#starter-pack">Starter Pack</a>
+            <a href="#personal-canon">Personal Canon</a>
+            <a href="#best-by-mood">Best by Mood</a>
+            <a href="#deep-cuts">Deep Cuts</a>
+            <a href="#not-for-everyone">Not For Everyone</a>
+            <a href="#if-you-like-this">If You Like This</a>
+          </nav>
           <TasteSection
+            id="starter-pack"
             title="Starter Pack"
             subtitle="A representative cross-section if you're just dropping in."
             items={browser.starterPack}
             emptyCopy="No starter picks for this filter yet."
           />
           <TasteSection
+            id="personal-canon"
             title="Personal Canon"
             subtitle="The films I'd defend on a desert island."
             items={browser.personalCanon}
             emptyCopy="No canon picks match these filters."
           />
           <TasteSection
+            id="best-by-mood"
             title="Best by Mood"
             subtitle="Strongest pick for whatever mood you filtered by."
             items={browser.bestByMoodOrTag}
@@ -101,13 +115,14 @@ export function PublicTastePage() {
           />
           {browser.deepCutsDataAvailable ? (
             <TasteSection
+              id="deep-cuts"
               title="Deep Cuts I Liked"
               subtitle="Lower-popularity finds that landed for me."
               items={browser.deepCuts}
               emptyCopy="No popularity data for this slice — try a broader runtime."
             />
           ) : (
-            <section className="panel">
+            <section id="deep-cuts" className="panel">
               <header className="panel__header">
                 <h3 className="panel__title">Deep Cuts I Liked</h3>
                 <p className="panel__subtitle">Lower-popularity finds that landed for me.</p>
@@ -116,12 +131,13 @@ export function PublicTastePage() {
             </section>
           )}
           <TasteSection
+            id="not-for-everyone"
             title="Not For Everyone"
             subtitle="High-rated picks I'd hesitate to hand to a stranger."
             items={browser.notForEveryone}
             emptyCopy="Nothing flagged as polarising in this slice."
           />
-          <section className="panel">
+          <section id="if-you-like-this" className="panel">
             <header className="panel__header">
               <h3 className="panel__title">If You Like This, Try This From My Diary</h3>
               <p className="panel__subtitle">Pick a film and I'll surface adjacent watches from the log.</p>
@@ -142,19 +158,21 @@ export function PublicTastePage() {
               />
             ) : null}
           </section>
-        </>
+        </div>
       ) : null}
     </section>
   )
 }
 
 function TasteSection({
+  id,
   title,
   subtitle,
   items,
   flush = false,
   emptyCopy = 'No films match these filters yet.',
 }: {
+  id?: string
   title: string
   subtitle?: string
   items: Array<{ film: FilmEntry; explanation: string }>
@@ -182,7 +200,7 @@ function TasteSection({
   }
 
   return (
-    <section className="panel">
+    <section id={id} className="panel">
       <header className="panel__header">
         <h3 className="panel__title">{title}</h3>
         {subtitle ? <p className="panel__subtitle">{subtitle}</p> : null}

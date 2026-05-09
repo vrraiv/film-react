@@ -118,3 +118,27 @@ export const fetchPublicFilmEntries = async (): Promise<FilmEntry[]> => {
 
   return data.map(mapPublicRowToFilmEntry)
 }
+
+export const fetchPublicFilmEntryById = async (
+  filmId: string,
+): Promise<FilmEntry | null> => {
+  const trimmedId = filmId.trim()
+
+  if (!trimmedId) {
+    return null
+  }
+
+  const { data, error } = await supabase
+    .from('film_entries')
+    .select(publicFilmEntryColumns)
+    .eq('id', trimmedId)
+    .eq('is_public', true)
+    .maybeSingle()
+    .returns<PublicFilmEntryRow | null>()
+
+  if (error) {
+    throw new Error(`Could not load public film entry: ${error.message}`)
+  }
+
+  return data ? mapPublicRowToFilmEntry(data) : null
+}

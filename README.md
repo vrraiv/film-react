@@ -2,6 +2,12 @@
 
 Personal film diary built with React, Vite, TypeScript, Supabase Auth, and Supabase Postgres.
 
+## What this is
+
+A personal film diary that doubles as a public showcase: reviews, a taste browser, viewing insights, and an experimental ML recommender. The owner uses signed-in pages to log films, tune the recommender, and import history; everyone else sees the curated public side.
+
+See [`docs/page-structure.md`](docs/page-structure.md) for the page map and the design rationale behind it.
+
 ## Local setup
 
 1. Install dependencies:

@@ -1,10 +1,32 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
-import { formatFilmTag } from '../config/filmOptions'
+import { CalendarHeatmap } from '../components/insights/CalendarHeatmap'
+import { DecadeDonut } from '../components/insights/DecadeDonut'
+import { HeroStats } from '../components/insights/HeroStats'
+import { Leaderboards } from '../components/insights/Leaderboards'
+import { RatingHistogram } from '../components/insights/RatingHistogram'
+import { RuntimeHistogram } from '../components/insights/RuntimeHistogram'
+import { TagFingerprint } from '../components/insights/TagFingerprint'
+import { WatchPatternBars } from '../components/insights/WatchPatternBars'
 import { RATING_OPTIONS } from '../config/filmTags'
 import { useFilms } from '../hooks/useFilms'
 import { fetchPublicFilmEntries } from '../services/publicFilmProfileService'
 import type { FilmEntry } from '../types/film'
+import {
+  buildCalendarHeatmap,
+  buildDayOfWeekBuckets,
+  buildDecadeBuckets,
+  buildDecadeLeaderboard,
+  buildDirectorLeaderboard,
+  buildMonthBuckets,
+  buildRuntimeHistogram,
+  buildTagFingerprint,
+  buildTopOfYear,
+  countFirstWatches,
+  countThisYear,
+  monthsElapsedThisYear,
+  type RatingBucket,
+} from '../utils/insights'
 import {
   getRangeForPreset,
   isWithinRange,
@@ -26,11 +48,6 @@ const periodLabel = (
       if (!custom.start || !custom.end) return 'Custom range'
       return `${custom.start} → ${custom.end}`
   }
-}
-
-type RewatchAggregate = {
-  total: number
-  count: number
 }
 
 const ratingBuckets = [...RATING_OPTIONS]
@@ -99,133 +116,72 @@ export function InsightsPage() {
     }
   }, [authLoading, user])
 
-  const insights = useMemo(() => {
+  const dedupedForRatings = useMemo(() => {
     const sortedFilms = [...scopedFilms].sort((left, right) => {
       const dateComparison = right.dateWatched.localeCompare(left.dateWatched)
-
-      if (dateComparison !== 0) {
-        return dateComparison
-      }
-
+      if (dateComparison !== 0) return dateComparison
       return right.metadata.dateLogged.localeCompare(left.metadata.dateLogged)
     })
 
-    const groupsByTmdbId = new Map<string, FilmEntry[]>()
-
+    const seenTmdb = new Set<string>()
+    const result: FilmEntry[] = []
     for (const film of sortedFilms) {
       const tmdbId = film.metadata.tmdb?.id
-
       if (tmdbId === null || tmdbId === undefined) {
+        result.push(film)
         continue
       }
-
       const key = `tmdb:${tmdbId}`
-      const existing = groupsByTmdbId.get(key) ?? []
-      groupsByTmdbId.set(key, [...existing, film])
+      if (seenTmdb.has(key)) continue
+      seenTmdb.add(key)
+      result.push(film)
     }
-
-    const filmsForAverages = sortedFilms.filter((film) => {
-      const tmdbId = film.metadata.tmdb?.id
-
-      if (tmdbId === null || tmdbId === undefined) {
-        return true
-      }
-
-      const key = `tmdb:${tmdbId}`
-      const grouped = groupsByTmdbId.get(key)
-
-      return grouped?.[0]?.id === film.id
-    })
-
-    const ratedFilms = filmsForAverages.filter((film) => film.rating !== null)
-    const averageRating = ratedFilms.length
-      ? ratedFilms.reduce((sum, film) => sum + (film.rating ?? 0), 0) / ratedFilms.length
-      : null
-
-    const ratingDistribution = ratingBuckets.map((rating) => ({
-      rating,
-      count: ratedFilms.filter((film) => film.rating === rating).length,
-    }))
-    const maxRatingCount = Math.max(
-      ...ratingDistribution.map((bucket) => bucket.count),
-      0,
-    )
-
-    const tagTotals = new Map<string, { total: number; count: number }>()
-
-    for (const film of ratedFilms) {
-      for (const tag of film.tags) {
-        const previous = tagTotals.get(tag) ?? { total: 0, count: 0 }
-        tagTotals.set(tag, {
-          total: previous.total + (film.rating ?? 0),
-          count: previous.count + 1,
-        })
-      }
-    }
-
-    const topTagsByAverageRating = [...tagTotals.entries()]
-      .map(([tag, totals]) => ({
-        tag,
-        averageRating: totals.total / totals.count,
-        appearances: totals.count,
-      }))
-      .sort((left, right) => right.averageRating - left.averageRating || right.appearances - left.appearances)
-      .slice(0, 5)
-
-    const firstWatchCount = scopedFilms.filter((film) => film.metadata.firstWatch === true).length
-
-    const rewatchGroups = [...groupsByTmdbId.values()].filter((logs) => logs.length > 1)
-
-    const firstWatchAverageTotals: RewatchAggregate = { total: 0, count: 0 }
-    const allWatchAverageTotals: RewatchAggregate = { total: 0, count: 0 }
-
-    for (const logs of rewatchGroups) {
-      const firstWatchLog = logs.find((log) => log.metadata.firstWatch === true && log.rating !== null)
-
-      if (firstWatchLog?.rating !== null && firstWatchLog?.rating !== undefined) {
-        firstWatchAverageTotals.total += firstWatchLog.rating
-        firstWatchAverageTotals.count += 1
-      }
-
-      for (const log of logs) {
-        if (log.rating !== null) {
-          allWatchAverageTotals.total += log.rating
-          allWatchAverageTotals.count += 1
-        }
-      }
-    }
-
-    const rewatchStats = {
-      filmsWithRewatches: rewatchGroups.length,
-      averageFirstWatch:
-        firstWatchAverageTotals.count > 0
-          ? firstWatchAverageTotals.total / firstWatchAverageTotals.count
-          : null,
-      averageAllWatches:
-        allWatchAverageTotals.count > 0
-          ? allWatchAverageTotals.total / allWatchAverageTotals.count
-          : null,
-    }
-
-    return {
-      totalFilmsLogged: scopedFilms.length,
-      firstWatchCount,
-      averageRating,
-      ratingDistribution,
-      maxRatingCount,
-      ratedCount: ratedFilms.length,
-      topTagsByAverageRating,
-      rewatchStats,
-    }
+    return result
   }, [scopedFilms])
 
-  const histogramSummary = useMemo(() => {
-    if (!insights.ratedCount) return ''
-    const peak = insights.ratingDistribution.reduce((best, bucket) =>
-      bucket.count > best.count ? bucket : best,
-    insights.ratingDistribution[0])
-    return `Rating distribution across ${insights.ratedCount} rated films, peaking at ${peak.rating.toFixed(1)} with ${peak.count} films.`
-  }, [insights])
+  const ratedFilms = useMemo(
+    () => dedupedForRatings.filter((film) => film.rating !== null),
+    [dedupedForRatings],
+  )
+
+  const ratingDistribution: RatingBucket[] = useMemo(
+    () =>
+      ratingBuckets.map((rating) => ({
+        rating,
+        count: ratedFilms.filter((film) => film.rating === rating).length,
+      })),
+    [ratedFilms],
+  )
+
+  const averageRating = ratedFilms.length
+    ? ratedFilms.reduce((sum, film) => sum + (film.rating ?? 0), 0) / ratedFilms.length
+    : null
+
+  const heatmap = useMemo(() => buildCalendarHeatmap(scopedFilms), [scopedFilms])
+  const monthBuckets = useMemo(() => buildMonthBuckets(scopedFilms), [scopedFilms])
+  const dayOfWeekBuckets = useMemo(() => buildDayOfWeekBuckets(scopedFilms), [scopedFilms])
+  const decadeBuckets = useMemo(() => buildDecadeBuckets(dedupedForRatings), [dedupedForRatings])
+  const runtimeBuckets = useMemo(() => buildRuntimeHistogram(dedupedForRatings), [dedupedForRatings])
+  const tagFingerprint = useMemo(() => buildTagFingerprint(dedupedForRatings), [dedupedForRatings])
+  const directorLeaderboard = useMemo(
+    () => buildDirectorLeaderboard(dedupedForRatings),
+    [dedupedForRatings],
+  )
+  const decadeLeaderboard = useMemo(
+    () => buildDecadeLeaderboard(decadeBuckets),
+    [decadeBuckets],
+  )
+
+  const currentYear = new Date().getFullYear()
+  const topOfYear = useMemo(
+    () => buildTopOfYear(films, currentYear),
+    [films, currentYear],
+  )
+  const thisYearCount = useMemo(() => countThisYear(films, currentYear), [films, currentYear])
+  const monthsElapsed = useMemo(() => monthsElapsedThisYear(), [])
+  const firstWatchCount = useMemo(() => countFirstWatches(scopedFilms), [scopedFilms])
+
+  const scopeLabel = periodLabel(period, customRange)
 
   return (
     <section className="page">
@@ -273,7 +229,7 @@ export function InsightsPage() {
         <div className="insights-pills">
           {!user ? <span className="meta-pill">Public preview</span> : null}
           {period !== 'all' ? (
-            <span className="meta-pill meta-pill--soft">{periodLabel(period, customRange)}</span>
+            <span className="meta-pill meta-pill--soft">{scopeLabel}</span>
           ) : null}
         </div>
       </header>
@@ -281,120 +237,54 @@ export function InsightsPage() {
       {publicError ? <p className="alert alert--error" role="alert">{publicError}</p> : null}
 
       {isLoading ? (
-        <div className="shell-grid" aria-busy="true" aria-label="Loading insights">
-          <div className="skeleton-card" />
-          <div className="skeleton-card" />
+        <div className="insights-grid" aria-busy="true" aria-label="Loading insights">
+          <div className="skeleton-card skeleton-card--wide" />
+          <div className="skeleton-card skeleton-card--wide" />
           <div className="skeleton-card" />
           <div className="skeleton-card" />
         </div>
       ) : (
-        <div className="shell-grid">
-          <section className="shell-card">
-            <h3>Film totals</h3>
-            <ul className="insight-list">
-              <li>Total films logged: {insights.totalFilmsLogged}</li>
-              <li>First watches: {insights.firstWatchCount}</li>
-            </ul>
-          </section>
+        <div className="insights-stack">
+          <HeroStats
+            totalFilms={scopedFilms.length}
+            averageRating={averageRating}
+            ratedCount={ratedFilms.length}
+            firstWatches={firstWatchCount}
+            thisYearCount={thisYearCount}
+            monthsElapsed={monthsElapsed}
+            scopeLabel={scopeLabel}
+          />
 
-          <section className="shell-card">
-            <h3>Average rating</h3>
-            <p className="page__copy">
-              {insights.averageRating === null
-                ? 'No ratings yet — log a rating on any film to see your average.'
-                : `${insights.averageRating.toFixed(1)} / 5`}
-            </p>
-          </section>
+          <CalendarHeatmap
+            cells={heatmap.cells}
+            max={heatmap.max}
+            start={heatmap.start}
+            end={heatmap.end}
+          />
 
-          <section className="shell-card">
-            <h3>Rating distribution</h3>
-            {insights.ratingDistribution.some((bucket) => bucket.count > 0) ? (
-              <>
-                <p className="meta">
-                  Films per rating &middot; {insights.ratedCount} rated
-                </p>
-                <div
-                  className="rating-histogram"
-                  role="img"
-                  aria-label={histogramSummary}
-                >
-                  {insights.ratingDistribution.map((bucket) => {
-                    const isMinor = (bucket.rating * 10) % 10 !== 0
-                    return (
-                      <div
-                        className="rating-histogram__bar"
-                        key={bucket.rating}
-                        aria-hidden="true"
-                        title={`${bucket.count} film${bucket.count === 1 ? '' : 's'} at ${bucket.rating.toFixed(1)}`}
-                      >
-                        <span
-                          className="rating-histogram__fill"
-                          style={{
-                            height: insights.maxRatingCount
-                              ? `${Math.max((bucket.count / insights.maxRatingCount) * 100, bucket.count > 0 ? 12 : 0)}%`
-                              : '0%',
-                          }}
-                        />
-                        <span
-                          className="rating-histogram__label"
-                          data-minor={isMinor ? 'true' : undefined}
-                        >
-                          {bucket.rating.toFixed(1)}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
-            ) : (
-              <p className="page__copy">
-                No rated films yet. Log a rating on any film to see this chart fill in.
-              </p>
-            )}
-          </section>
+          <RatingHistogram buckets={ratingDistribution} ratedCount={ratedFilms.length} />
 
-          <section className="shell-card">
-            <h3>Rewatch stats</h3>
-            {insights.rewatchStats.filmsWithRewatches ? (
-              <>
-                <ul className="insight-list">
-                  <li>Films logged multiple times: {insights.rewatchStats.filmsWithRewatches}</li>
-                  <li>Average first watch: {insights.rewatchStats.averageFirstWatch === null ? 'N/A' : `${insights.rewatchStats.averageFirstWatch.toFixed(1)} / 5`}</li>
-                  <li>Average of all watches: {insights.rewatchStats.averageAllWatches === null ? 'N/A' : `${insights.rewatchStats.averageAllWatches.toFixed(1)} / 5`}</li>
-                </ul>
-                <details className="field__hint-details">
-                  <summary>What's the difference?</summary>
-                  <p>
-                    <em>First watch</em> averages only the log marked as the first viewing of each film.{' '}
-                    <em>All watches</em> averages every log of every film &mdash; rewatches included &mdash; so it shifts as opinions settle.
-                  </p>
-                </details>
-              </>
-            ) : (
-              <p className="page__copy">No rewatches with high-confidence TMDb matches yet.</p>
-            )}
-          </section>
+          <WatchPatternBars months={monthBuckets} daysOfWeek={dayOfWeekBuckets} />
 
-          <section className="shell-card">
-            <h3>Top tags by average rating</h3>
-            {insights.topTagsByAverageRating.length ? (
-              <ol className="insight-list">
-                {insights.topTagsByAverageRating.map((item) => (
-                  <li key={item.tag}>
-                    {formatFilmTag(item.tag)}: <strong>{item.averageRating.toFixed(1)}</strong>{' '}
-                    <span className="meta-pill meta-pill--soft">{item.appearances} rated</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="page__copy">More tag patterns will appear as more films are logged.</p>
-            )}
-          </section>
+          <div className="insights-grid">
+            <DecadeDonut buckets={decadeBuckets} />
+            <RuntimeHistogram buckets={runtimeBuckets} />
+          </div>
+
+          <TagFingerprint stats={tagFingerprint} />
+
+          <Leaderboards
+            topOfYear={topOfYear}
+            topDirectors={directorLeaderboard}
+            topDecades={decadeLeaderboard}
+            yearLabel={String(currentYear)}
+          />
         </div>
       )}
 
       <aside className="page__footnote">
-        All averages use the most recent log for each film when it has been logged multiple times.
+        Ratings, decades, runtimes, and tag stats use the most recent log per film. Calendar and
+        watch-pattern charts count every log so rewatches show up.
       </aside>
     </section>
   )

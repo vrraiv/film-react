@@ -24,6 +24,7 @@ export type TmdbCandidateResult = {
 export type TmdbMovieDetails = {
   id: number
   title: string
+  overview: string | null
   releaseYear: number | null
   runtime: number | null
   popularity: number | null

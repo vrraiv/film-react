@@ -414,6 +414,19 @@ function RecommendationCard({ recommendation }: { recommendation: FilmRecommenda
             <ScorePill label="Confidence" value={recommendation.confidenceScore} />
           </div>
 
+          {recommendation.overview ? (
+            <p className="recommendation-card__overview" title={recommendation.overview}>
+              {recommendation.overview}
+            </p>
+          ) : null}
+
+          {recommendation.cast.length > 0 ? (
+            <div>
+              <h4 className="recommendation-card__subhead">Cast</h4>
+              <p className="page__copy">{recommendation.cast.join(', ')}</p>
+            </div>
+          ) : null}
+
           {recommendation.genres.length > 0 ? (
             <div
               className={`tag-row tag-row--readonly${isGenreListExpanded ? ' tag-row--readonly-expanded' : ''}`}

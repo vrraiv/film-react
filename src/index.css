@@ -309,6 +309,21 @@ button {
   padding-left: 1.1rem;
 }
 
+.landing__stat-value {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 4vw, 3.4rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.landing__stat-unit {
+  font-size: 0.45em;
+  color: var(--text-muted);
+  letter-spacing: 0;
+  margin-left: 0.25rem;
+}
+
 .insights-period {
   display: flex;
   flex-wrap: wrap;

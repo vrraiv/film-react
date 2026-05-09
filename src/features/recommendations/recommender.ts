@@ -40,6 +40,7 @@ export type RecommendationCandidate = {
   countries: string[]
   languages: string[]
   keywords: string[]
+  overview: string | null
   popularity: number | null
   voteAverage: number | null
   voteCount: number | null
@@ -226,6 +227,7 @@ const enrichCandidate = async (
       countries: details.countries,
       languages: details.languages,
       keywords: keywordsResponse.keywords,
+      overview: details.overview,
       popularity: details.popularity ?? candidate.popularity,
       voteAverage: details.voteAverage ?? candidate.voteAverage,
       voteCount: details.voteCount ?? candidate.voteCount,

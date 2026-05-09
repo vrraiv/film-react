@@ -65,6 +65,7 @@ export default async (request: Request) => {
   return jsonResponse(200, {
     id: typeof movie.id === 'number' ? movie.id : null,
     title: typeof movie.title === 'string' ? movie.title : 'Unknown title',
+    overview: typeof movie.overview === 'string' && movie.overview.trim().length > 0 ? movie.overview : null,
     releaseYear: typeof movie.release_date === 'string' ? Number(movie.release_date.slice(0, 4)) : null,
     runtime: typeof movie.runtime === 'number' ? movie.runtime : null,
     popularity: typeof movie.popularity === 'number' ? movie.popularity : null,

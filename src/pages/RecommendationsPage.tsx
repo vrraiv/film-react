@@ -46,6 +46,10 @@ const configFieldLabels: Array<{
     | 'ratingStrongPositiveThreshold'
     | 'maxNegativePenaltyForSelectionFeatures'
     | 'tmdbPopularityPriorWeight'
+    | 'minVoteCount'
+    | 'minRuntimeMinutes'
+    | 'voteShrinkagePrior'
+    | 'voteShrinkageMean'
   >
   label: string
   min: number
@@ -56,7 +60,11 @@ const configFieldLabels: Array<{
   { key: 'ratingPositiveThreshold', label: 'Positive rating threshold', min: 0.5, max: 5, step: 0.5 },
   { key: 'ratingStrongPositiveThreshold', label: 'Strong positive threshold', min: 0.5, max: 5, step: 0.5 },
   { key: 'maxNegativePenaltyForSelectionFeatures', label: 'Selection-feature penalty cap', min: 0, max: 0.6, step: 0.01 },
-  { key: 'tmdbPopularityPriorWeight', label: 'TMDb prior weight', min: 0, max: 0.4, step: 0.01 },
+  { key: 'tmdbPopularityPriorWeight', label: 'TMDb prior weight', min: 0, max: 0.6, step: 0.01 },
+  { key: 'minVoteCount', label: 'Min TMDb vote count', min: 0, max: 500, step: 5 },
+  { key: 'minRuntimeMinutes', label: 'Min runtime (minutes)', min: 0, max: 180, step: 5 },
+  { key: 'voteShrinkagePrior', label: 'Bayesian shrinkage prior (m)', min: 0, max: 500, step: 5 },
+  { key: 'voteShrinkageMean', label: 'Bayesian global mean (C)', min: 0, max: 10, step: 0.1 },
 ]
 
 const featureWeightLabels: Array<{ key: keyof RecommenderFeatureWeights; label: string }> = [

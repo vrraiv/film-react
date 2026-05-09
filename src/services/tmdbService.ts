@@ -17,6 +17,7 @@ export type TmdbCandidateResult = {
   genreIds: number[]
   popularity: number | null
   voteAverage: number | null
+  voteCount: number | null
   source: TmdbCandidateSource
 }
 
@@ -27,6 +28,7 @@ export type TmdbMovieDetails = {
   runtime: number | null
   popularity: number | null
   voteAverage: number | null
+  voteCount: number | null
   genres: string[]
   director: string | null
   writers: string[]

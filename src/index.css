@@ -1426,6 +1426,137 @@ button {
   gap: var(--space-14);
 }
 
+.film-detail__hero {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: start;
+  margin-top: var(--space-8);
+}
+
+.film-detail__poster-wrap {
+  width: 100%;
+}
+
+.film-detail__poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.film-detail__poster--placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.film-detail__hero-meta {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.film-detail__title {
+  margin: 0;
+}
+
+.film-detail__year {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.film-detail__director {
+  margin: 0;
+  font-weight: 600;
+}
+
+.film-detail__rating {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.film-detail__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: start;
+}
+
+.film-detail__body {
+  display: grid;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.film-detail__sidebar {
+  display: grid;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.film-detail__notes {
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.film-detail__watch-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-9);
+}
+
+.film-detail__watch-log li {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.film-detail__facts {
+  margin: 0;
+  display: grid;
+  gap: var(--space-7);
+}
+
+.film-detail__facts dt {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.film-detail__facts dd {
+  margin: var(--space-2) 0 0;
+}
+
+@media (max-width: 720px) {
+  .film-detail__hero {
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: var(--space-9);
+  }
+
+  .film-detail__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .film-detail__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .film-detail__poster-wrap {
+    max-width: 160px;
+  }
+}
+
 .detail-grid {
   margin: 0;
   display: grid;

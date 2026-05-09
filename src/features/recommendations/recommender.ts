@@ -42,6 +42,7 @@ export type RecommendationCandidate = {
   keywords: string[]
   popularity: number | null
   voteAverage: number | null
+  voteCount: number | null
   sources: TmdbCandidateSource[]
   sourceSeedIds: number[]
   watchedFilm: FilmEntry | null
@@ -227,6 +228,7 @@ const enrichCandidate = async (
       keywords: keywordsResponse.keywords,
       popularity: details.popularity ?? candidate.popularity,
       voteAverage: details.voteAverage ?? candidate.voteAverage,
+      voteCount: details.voteCount ?? candidate.voteCount,
       sources: candidate.sources,
       sourceSeedIds: candidate.sourceSeedIds,
       watchedFilm,
@@ -237,10 +239,23 @@ const enrichCandidate = async (
   }
 }
 
-const tmdbPriorScore = (candidate: RecommendationCandidate) => {
-  const votePrior = candidate.voteAverage === null ? 0.62 : clamp01(candidate.voteAverage / 10)
+const bayesianRating = (
+  voteAverage: number | null,
+  voteCount: number | null,
+  config: RecommenderConfig,
+): number | null => {
+  if (voteAverage === null) return null
+  const v = voteCount ?? 0
+  const m = config.voteShrinkagePrior
+  const C = config.voteShrinkageMean
+  return (v * voteAverage + m * C) / (v + m)
+}
+
+const tmdbPriorScore = (candidate: RecommendationCandidate, config: RecommenderConfig) => {
+  const shrunk = bayesianRating(candidate.voteAverage, candidate.voteCount, config)
+  const votePrior = shrunk === null ? 0.4 : clamp01(shrunk / 10)
   const popularityPrior = candidate.popularity === null
-    ? 0.5
+    ? 0.35
     : clamp01(Math.log10(candidate.popularity + 1) / Math.log10(RECOMMENDATION_TUNING.popularityPriorCap + 1))
 
   return votePrior * 0.72 + popularityPrior * 0.28
@@ -357,8 +372,8 @@ const scoreCandidate = (
     candidate.director !== null,
     candidate.keywords.length > 0,
   ].filter(Boolean).length / 4
-  const seedBoost = clamp01(candidate.sourceSeedIds.length / 3) * 0.1
-  const prior = tmdbPriorScore(candidate)
+  const seedBoost = clamp01(candidate.sourceSeedIds.length / 3) * 0.06
+  const prior = tmdbPriorScore(candidate, config)
 
   const interestScore = clamp01(profileInterest * 0.82 + seedBoost + (candidate.sources.includes('discover') ? 0.03 : 0.06))
   const expectedSatisfactionScore = clamp01(
@@ -368,11 +383,11 @@ const scoreCandidate = (
   const riskScore = clamp01(profileRisk * 0.82 + (1 - metadataCompleteness) * 0.12 + (matches.length === 0 ? 0.15 : 0))
   const confidenceScore = clamp01(matchConfidence * 0.68 + metadataCompleteness * 0.2 + clamp01(matches.length / 6) * 0.12)
   const finalScore = clamp01(
-    interestScore * 0.35 +
-    expectedSatisfactionScore * 0.38 +
-    confidenceScore * 0.17 -
+    interestScore * 0.32 +
+    expectedSatisfactionScore * 0.36 +
+    confidenceScore * 0.16 -
     riskScore * 0.18 +
-    prior * 0.08,
+    prior * 0.16,
   )
   const sourceSeeds = films.filter((film) => candidate.sourceSeedIds.includes(getWatchedTmdbId(film) ?? -1))
   const explanation = explain(candidate, matches, sourceSeeds, config)
@@ -445,20 +460,29 @@ export const buildPersonalRecommendations = async (
           genreIds: [],
           popularity: tmdb.popularity ?? null,
           voteAverage: tmdb.voteAverage ?? null,
+          voteCount: null,
           source: 'similar',
         }, tmdb.id)
       })
   }
 
+  const shrunkOf = (c: { voteAverage: number | null; voteCount: number | null }) =>
+    bayesianRating(c.voteAverage, c.voteCount, config) ?? 0
+
   const maxEnriched = options.maxEnrichedCandidates ?? RECOMMENDATION_TUNING.maxEnrichedCandidates
+  const headroom = Math.ceil(maxEnriched * 1.5)
+
   const prefiltered = [...rawCandidates.values()]
     .filter((candidate) => options.includeWatched || !watchedByTmdbId.has(candidate.id))
+    .filter((candidate) =>
+      options.includeWatched || (candidate.voteCount ?? 0) >= config.minVoteCount,
+    )
     .sort((left, right) =>
+      shrunkOf(right) - shrunkOf(left) ||
       right.sourceSeedIds.length - left.sourceSeedIds.length ||
-      (right.voteAverage ?? 0) - (left.voteAverage ?? 0) ||
       (right.popularity ?? 0) - (left.popularity ?? 0),
     )
-    .slice(0, maxEnriched)
+    .slice(0, headroom)
 
   const enriched: RecommendationCandidate[] = []
   for (const candidate of prefiltered) {
@@ -466,7 +490,14 @@ export const buildPersonalRecommendations = async (
     if (next) enriched.push(next)
   }
 
-  return enriched
+  const filtered = enriched.filter((candidate) =>
+    options.includeWatched ||
+    candidate.runtime === null ||
+    candidate.runtime >= config.minRuntimeMinutes,
+  )
+
+  return filtered
     .map((candidate) => scoreCandidate(candidate, profile, films, config))
     .sort((left, right) => right.finalScore - left.finalScore)
+    .slice(0, maxEnriched)
 }

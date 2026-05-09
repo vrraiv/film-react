@@ -16,6 +16,10 @@ export type RecommenderConfig = {
   maxNegativePenaltyForSelectionFeatures: number
   featureWeights: RecommenderFeatureWeights
   tmdbPopularityPriorWeight: number
+  minVoteCount: number
+  minRuntimeMinutes: number
+  voteShrinkagePrior: number
+  voteShrinkageMean: number
   featureOverrides: Record<string, RecommenderFeatureOverride>
 }
 
@@ -34,7 +38,11 @@ export const DEFAULT_RECOMMENDER_CONFIG: RecommenderConfig = {
     language: 0.35,
     runtime_bucket: 0.32,
   },
-  tmdbPopularityPriorWeight: 0.14,
+  tmdbPopularityPriorWeight: 0.28,
+  minVoteCount: 25,
+  minRuntimeMinutes: 40,
+  voteShrinkagePrior: 50,
+  voteShrinkageMean: 6.5,
   featureOverrides: {},
 }
 

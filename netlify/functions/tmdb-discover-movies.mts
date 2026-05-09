@@ -68,6 +68,7 @@ export default async (request: Request) => {
           : [],
         popularity: typeof movie.popularity === 'number' ? movie.popularity : null,
         voteAverage: typeof movie.vote_average === 'number' ? movie.vote_average : null,
+        voteCount: typeof movie.vote_count === 'number' ? movie.vote_count : null,
         source: 'discover',
       }
     })

@@ -69,6 +69,7 @@ export default async (request: Request) => {
     runtime: typeof movie.runtime === 'number' ? movie.runtime : null,
     popularity: typeof movie.popularity === 'number' ? movie.popularity : null,
     voteAverage: typeof movie.vote_average === 'number' ? movie.vote_average : null,
+    voteCount: typeof movie.vote_count === 'number' ? movie.vote_count : null,
     genres: Array.isArray(movie.genres)
       ? movie.genres
           .map((genre) => (genre && typeof genre === 'object' ? (genre as Record<string, unknown>).name : null))

@@ -3,7 +3,8 @@ import { useAuth } from '../auth/useAuth'
 import { appConfig } from '../config/env'
 
 const publicNavItems = [
-  { to: '/', label: 'Film Diary' },
+  { to: '/', label: 'Home' },
+  { to: '/diary', label: 'Film Diary' },
   { to: '/insights', label: 'Insights' },
   { to: '/taste', label: 'Shared Picks' },
 ]
@@ -14,7 +15,7 @@ const authenticatedNavItems = [
   { to: '/recommendations', label: 'Recommendations' },
   { to: '/insights', label: 'Insights' },
   { to: '/taste', label: 'Shared Picks' },
-  { to: '/', label: 'Film Diary' },
+  { to: '/diary', label: 'Film Diary' },
 ]
 
 const settingsNavItems = [{ to: '/settings', label: 'Settings' }]

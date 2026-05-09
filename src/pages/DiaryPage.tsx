@@ -26,7 +26,7 @@ const isDefaultFilters = (filters: FilmFiltersState) =>
 const getDirector = (film: FilmEntry) =>
   film.tmdbMetadata?.director ?? film.metadata.tmdb?.director ?? ''
 
-export function PublicPreviewPage() {
+export function DiaryPage() {
   const [films, setFilms] = useState<FilmEntry[]>([])
   const [filters, setFilters] = useState<FilmFiltersState>(defaultFilters)
   const [isLoading, setIsLoading] = useState(true)

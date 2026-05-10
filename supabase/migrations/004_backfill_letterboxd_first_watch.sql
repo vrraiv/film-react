@@ -1,9 +1,11 @@
 -- Backfill firstWatch for Letterboxd-imported rows.
 -- Rule:
---   * For each user + (title, release_year) group among Letterboxd rows,
---     skip groups that already have any metadata.firstWatch=true entry.
---   * For remaining groups, mark the earliest watched entry as firstWatch=true.
+--   * Only infer within repeated user + (title, release_year) groups among
+--     dated Letterboxd rows where every entry still has metadata.firstWatch unset.
+--   * For those repeat groups, mark the earliest watched entry as firstWatch=true.
 --   * Mark all later watched entries in those groups as firstWatch=false.
+--   * Leave singleton films alone because one log entry is not proof it was the
+--     user's first lifetime watch.
 -- Notes:
 --   * Uses id as a deterministic tiebreaker when multiple rows share date_watched.
 --   * Restricts updates to rows where metadata.source = 'letterboxd'.
@@ -20,6 +22,7 @@ with letterboxd_rows as (
     metadata
   from public.film_entries
   where metadata->>'source' = 'letterboxd'
+    and date_watched is not null
 ),
 eligible_groups as (
   select
@@ -28,7 +31,8 @@ eligible_groups as (
     release_year
   from letterboxd_rows
   group by user_id, normalized_title, release_year
-  having not bool_or(coalesce((metadata->>'firstWatch')::boolean, false))
+  having count(*) > 1
+     and bool_and((metadata->>'firstWatch') is null)
 ),
 ranked as (
   select

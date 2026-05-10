@@ -1,12 +1,11 @@
--- Undo the overly broad firstWatch backfill for singleton Letterboxd rows.
--- Migration 004 originally marked the only entry in each Letterboxd title/year
--- group as firstWatch=true. A singleton log proves the film has only one diary
--- entry, but it does not prove it was the user's first lifetime watch.
+-- Clear over-broad firstWatch=true values for singleton Letterboxd rows.
+-- A singleton log proves the film has only one diary entry, but it does not
+-- prove it was the user's first lifetime watch.
 --
 -- Keep singleton firstWatch=true values that are still supported by the TMDb
 -- release-date rule: watched before the official release date, or within one
--- year after it. Those values may have been set by the release-date inference
--- backfill and should remain declared first watches.
+-- year after it. Migration 012 backfills unset singleton rows that satisfy
+-- the same release-date rule.
 
 begin;
 

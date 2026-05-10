@@ -7,6 +7,10 @@ import {
   inferFirstWatchesFromTmdbReleaseDates,
   type FirstWatchInferenceResult,
 } from '../services/firstWatchInferenceService'
+import {
+  backfillTmdbReleaseDates,
+  type ReleaseDateBackfillResult,
+} from '../services/tmdbReleaseDateEnrichmentService'
 import { useAuth } from '../auth/useAuth'
 import { createFilmLogService } from '../services/filmLogService'
 
@@ -19,6 +23,10 @@ export function SettingsPage() {
   const [forceBackfill, setForceBackfill] = useState(false)
   const [backfillResult, setBackfillResult] = useState<KeywordBackfillResult | null>(null)
   const [progressLog, setProgressLog] = useState<string[]>([])
+  const [isBackfillingReleaseDates, setIsBackfillingReleaseDates] = useState(false)
+  const [forceReleaseDateBackfill, setForceReleaseDateBackfill] = useState(false)
+  const [releaseDateBackfillResult, setReleaseDateBackfillResult] = useState<ReleaseDateBackfillResult | null>(null)
+  const [releaseDateProgressLog, setReleaseDateProgressLog] = useState<string[]>([])
   const [isInferringFirstWatches, setIsInferringFirstWatches] = useState(false)
   const [firstWatchResult, setFirstWatchResult] = useState<FirstWatchInferenceResult | null>(null)
   const [firstWatchProgressLog, setFirstWatchProgressLog] = useState<string[]>([])
@@ -48,6 +56,28 @@ export function SettingsPage() {
     setBackfillResult(result)
     await reloadFilms()
     setIsBackfilling(false)
+  }
+
+  const runReleaseDateBackfill = async () => {
+    if (!user) return
+
+    setIsBackfillingReleaseDates(true)
+    setReleaseDateBackfillResult(null)
+    setReleaseDateProgressLog([])
+
+    try {
+      const service = createFilmLogService(user.id)
+      const result = await backfillTmdbReleaseDates(service, films, {
+        force: forceReleaseDateBackfill,
+        onProgress: (message) => {
+          setReleaseDateProgressLog((current) => [...current.slice(-199), message])
+        },
+      })
+      setReleaseDateBackfillResult(result)
+      await reloadFilms()
+    } finally {
+      setIsBackfillingReleaseDates(false)
+    }
   }
 
   const runFirstWatchInference = async () => {
@@ -87,11 +117,40 @@ export function SettingsPage() {
         <ul className="insight-list">
           <li>Films logged: {metadata.totalLoggedFilms}</li>
           <li>With TMDb ID: {metadata.withTmdbId}</li>
+          <li>With release date: {metadata.withReleaseDate}</li>
           <li>With keywords: {metadata.withKeywords}</li>
           <li>With genres: {metadata.withGenres}</li>
           <li>With director: {metadata.withDirector}</li>
           <li>With runtime: {metadata.withRuntime}</li>
         </ul>
+        <label>
+          <input
+            type="checkbox"
+            checked={forceReleaseDateBackfill}
+            onChange={(event) => setForceReleaseDateBackfill(event.target.checked)}
+            disabled={isBackfillingReleaseDates}
+          />{' '}
+          Refresh entries that already have release dates
+        </label>
+        <p>
+          <button
+            type="button"
+            onClick={() => void runReleaseDateBackfill()}
+            disabled={isBackfillingReleaseDates || isLoading || !user}
+          >
+            {isBackfillingReleaseDates ? 'Saving release dates...' : 'Save missing release dates'}
+          </button>
+        </p>
+        {releaseDateBackfillResult ? (
+          <p className="page__copy">
+            Updated {releaseDateBackfillResult.updated}, failed {releaseDateBackfillResult.failed}, missing at TMDb {releaseDateBackfillResult.missingReleaseDate}, skipped missing TMDb ID {releaseDateBackfillResult.skippedMissingTmdbId}, skipped already saved {releaseDateBackfillResult.skippedAlreadyHasReleaseDate}.
+          </p>
+        ) : null}
+        {releaseDateProgressLog.length > 0 ? (
+          <pre style={{ maxHeight: 220, overflow: 'auto', fontSize: '0.8rem' }}>
+            {releaseDateProgressLog.join('\n')}
+          </pre>
+        ) : null}
         <label>
           <input
             type="checkbox"
@@ -123,8 +182,9 @@ export function SettingsPage() {
         <h3>First watch guesses</h3>
         <p className="page__copy">
           Use TMDb release dates to fill in likely first watches. This only changes entries where
-          "First watch?" is not set. If a film was watched before its official TMDb release date,
-          or within 365 days after it, it will be marked as a first watch. Older watches stay unset.
+          "First watch?" is not set. If a film was watched before its US TMDb release date when
+          available, or within 365 days after it, it will be marked as a first watch. Older watches
+          stay unset.
         </p>
         <ul className="insight-list">
           <li>Marked first watches: {firstWatchStats.markedFirst}</li>

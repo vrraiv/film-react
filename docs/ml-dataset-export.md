@@ -26,9 +26,13 @@ Candidate rows are not true dislikes. They are suitable for selection modelling 
 
 ## Splitting
 
-Logged rows are sorted by watched date ascending. Older watched films are assigned to `train`; the newest fraction is assigned to `validation`.
+The app export still includes a legacy `split` field, but the offline ML module now creates its own explicit train/test split.
 
-Candidate rows are assigned to `unwatched_pool` and excluded from the watched train/validation label split.
+The notebook and CLI group logged rows by release decade and randomly sample the test rows within each decade. This avoids the previous newest-watch validation split and gives the test set coverage across release eras.
+
+Candidate rows are assigned to `unwatched_pool` and excluded from the watched train/test label split.
+
+Use `ml/notebooks/high_rating_train_test.ipynb` for the notebook workflow or `ml/train_high_rating_classifier.py` for the equivalent CLI workflow.
 
 ## Labels
 

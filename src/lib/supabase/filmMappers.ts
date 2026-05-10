@@ -12,6 +12,7 @@ export type FilmEntryRow = {
   user_id: string
   title: string
   release_year: number | null
+  release_date: string | null
   date_watched: string | null
   rating: number | null
   tags: string[]
@@ -49,11 +50,40 @@ export type FilmEntryRow = {
   }
 }
 
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/
+
+const getFilmReleaseDate = (film: FilmEntry): string | null => {
+  const releaseDate =
+    film.metadata.tmdb?.releaseDate ?? film.tmdbMetadata?.releaseDate ?? null
+
+  return typeof releaseDate === 'string' && isoDatePattern.test(releaseDate)
+    ? releaseDate
+    : null
+}
+
+const metadataWithReleaseDate = (
+  metadata: FilmEntryRow['metadata'],
+  releaseDate: string | null,
+): FilmEntryRow['metadata'] => {
+  if (!metadata.tmdb) {
+    return metadata
+  }
+
+  return {
+    ...metadata,
+    tmdb: {
+      ...metadata.tmdb,
+      releaseDate: releaseDate ?? metadata.tmdb.releaseDate ?? null,
+    },
+  }
+}
+
 export const mapFilmEntryToRow = (film: FilmEntry, userId: string): FilmEntryRow => ({
   id: film.id,
   user_id: userId,
   title: film.title,
   release_year: film.releaseYear,
+  release_date: getFilmReleaseDate(film),
   date_watched: film.dateWatched ? film.dateWatched : null,
   rating: film.rating,
   tags: film.tags,
@@ -73,7 +103,5 @@ export const mapRowToFilmEntry = (row: FilmEntryRow): FilmEntry => ({
   tags: row.tags,
   notes: row.notes,
   isPublic: row.is_public,
-  metadata: {
-    ...row.metadata,
-  },
+  metadata: metadataWithReleaseDate(row.metadata, row.release_date),
 })

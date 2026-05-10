@@ -18,6 +18,10 @@ export type KeywordBackfillResult = {
 const hasTmdbKeywords = (film: FilmEntry) =>
   Array.isArray(film.metadata.keywords) && film.metadata.keywords.some((keyword) => keyword.source === 'tmdb')
 
+const hasTmdbReleaseDate = (film: FilmEntry) =>
+  typeof film.metadata.tmdb?.releaseDate === 'string' &&
+  /^\d{4}-\d{2}-\d{2}$/.test(film.metadata.tmdb.releaseDate)
+
 const normalizeTmdbKeywords = (keywords: string[]): FilmMetadataKeyword[] =>
   [...new Set(keywords.map((keyword) => keyword.trim()).filter(Boolean))]
     .map((value) => ({ source: 'tmdb' as const, value }))
@@ -25,6 +29,7 @@ const normalizeTmdbKeywords = (keywords: string[]): FilmMetadataKeyword[] =>
 export const buildMetadataCompleteness = (films: FilmEntry[]) => ({
   totalLoggedFilms: films.length,
   withTmdbId: films.filter((film) => typeof film.metadata.tmdb?.id === 'number').length,
+  withReleaseDate: films.filter(hasTmdbReleaseDate).length,
   withKeywords: films.filter((film) => Array.isArray(film.metadata.keywords) && film.metadata.keywords.length > 0).length,
   withGenres: films.filter((film) => (film.metadata.tmdb?.genres?.length ?? 0) > 0).length,
   withDirector: films.filter((film) => Boolean(film.metadata.tmdb?.director)).length,

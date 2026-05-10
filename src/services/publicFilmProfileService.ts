@@ -11,6 +11,7 @@ type PublicFilmEntryRow = {
   id: string
   title: string
   release_year: number | null
+  release_date: string | null
   date_watched: string
   rating: number | null
   tags: string[]
@@ -29,12 +30,13 @@ const publicFilmEntryColumns = `
   id,
   title,
   release_year,
+  release_date,
   date_watched,
   rating,
   tags,
   notes,
-  is_public
-  ,metadata
+  is_public,
+  metadata
 `
 
 const defaultPublicMetadata = (): FilmMetadata => ({
@@ -47,6 +49,20 @@ const defaultPublicMetadata = (): FilmMetadata => ({
   tmdb: null,
 })
 
+const tmdbMetadataWithReleaseDate = (
+  tmdb: FilmMetadata['tmdb'],
+  releaseDate: string | null,
+) => {
+  if (!tmdb) {
+    return null
+  }
+
+  return {
+    ...tmdb,
+    releaseDate: releaseDate ?? tmdb.releaseDate ?? null,
+  }
+}
+
 const mapPublicRowToFilmEntry = (row: PublicFilmEntryRow): FilmEntry => ({
   id: row.id,
   title: row.title,
@@ -57,7 +73,7 @@ const mapPublicRowToFilmEntry = (row: PublicFilmEntryRow): FilmEntry => ({
   notes: row.notes,
   isPublic: row.is_public,
   metadata: defaultPublicMetadata(),
-  tmdbMetadata: row.metadata?.tmdb ?? null,
+  tmdbMetadata: tmdbMetadataWithReleaseDate(row.metadata?.tmdb ?? null, row.release_date),
 })
 
 export const fetchPublicFilmProfile = async (

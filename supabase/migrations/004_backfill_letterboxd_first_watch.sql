@@ -1,4 +1,4 @@
--- Backfill firstWatch for Letterboxd-imported rows.
+-- Backfill repeat-group firstWatch values for Letterboxd-imported rows.
 -- Rule:
 --   * Only infer within repeated user + (title, release_year) groups among
 --     dated Letterboxd rows where every entry still has metadata.firstWatch unset.
@@ -9,6 +9,7 @@
 -- Notes:
 --   * Uses id as a deterministic tiebreaker when multiple rows share date_watched.
 --   * Restricts updates to rows where metadata.source = 'letterboxd'.
+--   * Release-window inference for singleton rows is handled by migration 012.
 
 begin;
 

@@ -15,6 +15,7 @@ const filmEntryColumns = `
   user_id,
   title,
   release_year,
+  release_date,
   date_watched,
   rating,
   tags,

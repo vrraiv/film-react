@@ -12,6 +12,9 @@ The reusable ML modules live in `ml/film_ml/`. The notebook and CLI both call
 those modules, so there is one implementation path for splitting, training,
 testing, metrics, and prediction export.
 
+See `docs/ml-improvement-roadmap.md` for the evaluation and modelling paths to
+explore before using ML in production ranking.
+
 ## Input
 
 Default dataset path:

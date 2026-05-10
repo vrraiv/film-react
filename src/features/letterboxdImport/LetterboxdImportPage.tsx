@@ -966,7 +966,7 @@ export function LetterboxdImportPage() {
                             {candidate.row.releaseYear ?? 'Year unknown'} - {candidate.row.sourceFile} row {candidate.row.rowNumber}
                           </span>
                         </td>
-                        <td>{candidate.row.dateWatched}</td>
+                        <td>{candidate.row.dateWatched || '—'}</td>
                         <td>{formatRating(candidate.row.rating)}</td>
                         <td>{formatRewatch(candidate.row.rewatch)}</td>
                         <td>

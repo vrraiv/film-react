@@ -18,9 +18,11 @@ type FilmCardProps = {
 }
 
 const formatDate = (value: string) =>
-  new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-  }).format(new Date(`${value}T00:00:00`))
+  value
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+      }).format(new Date(`${value}T00:00:00`))
+    : 'date unknown'
 
 const getTmdbMetadata = (film: FilmEntry) => film.tmdbMetadata ?? film.metadata.tmdb
 const readonlyTagLimit = 5

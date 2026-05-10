@@ -23,6 +23,14 @@ const columnAliases = {
   tags: ['Tags', 'Tag'],
 } as const
 
+// ratings.csv only has a `Date` column (the rating date), not a `Watched Date`.
+// Treating it as a watched date stamps the user's whole rating-spree day onto
+// the diary, so for ratings rows we look only at explicit watched-date columns.
+const dateWatchedAliasesForKind = (
+  kind: LetterboxdCsvKind,
+): readonly string[] =>
+  kind === 'diary' ? columnAliases.dateWatched : ['Watched Date', 'Date Watched']
+
 const normalizeHeader = (value: string) => value.trim().toLocaleLowerCase()
 
 const buildHeaderMap = (headers: string[]) =>
@@ -159,10 +167,11 @@ const getMissingRequiredColumns = (
 ) => {
   const requirements: Array<[readonly string[], string]> = [
     [columnAliases.title, 'Name'],
-    [columnAliases.dateWatched, 'Watched Date or Date'],
   ]
 
-  if (sourceKind === 'ratings') {
+  if (sourceKind === 'diary') {
+    requirements.push([columnAliases.dateWatched, 'Watched Date or Date'])
+  } else {
     requirements.push([columnAliases.rating, 'Rating'])
   }
 
@@ -180,10 +189,11 @@ const mapCsvRow = (
 ): { row: LetterboxdParsedRow | null; issues: LetterboxdParseIssue[] } => {
   const issues: LetterboxdParseIssue[] = []
   const title = readColumn(row, headerMap, columnAliases.title)
-  const rawDate = readColumn(row, headerMap, columnAliases.dateWatched)
+  const rawDate = readColumn(row, headerMap, dateWatchedAliasesForKind(sourceKind))
   const rawRating = readColumn(row, headerMap, columnAliases.rating)
   const rawYear = readColumn(row, headerMap, columnAliases.year)
-  const dateWatched = parseDate(rawDate)
+  const parsedDate = parseDate(rawDate)
+  const dateWatched = parsedDate ?? ''
   const parsedYear = parseYear(rawYear)
   const parsedRating = parseRating(rawRating)
 
@@ -191,11 +201,19 @@ const mapCsvRow = (
     issues.push({ fileName, rowNumber, message: 'Missing film title.' })
   }
 
-  if (!dateWatched) {
+  if (sourceKind === 'diary' && !parsedDate) {
     issues.push({
       fileName,
       rowNumber,
       message: 'Missing or invalid watched date.',
+    })
+  }
+
+  if (rawDate && !parsedDate && sourceKind === 'ratings') {
+    issues.push({
+      fileName,
+      rowNumber,
+      message: 'Watched date column is unparseable; importing without a date.',
     })
   }
 
@@ -211,7 +229,14 @@ const mapCsvRow = (
     issues.push({ fileName, rowNumber, message: 'Ratings rows require a rating.' })
   }
 
-  if (issues.length > 0 || !dateWatched) {
+  const blockingIssue =
+    !title ||
+    (sourceKind === 'diary' && !parsedDate) ||
+    parsedYear.error !== null ||
+    parsedRating.error !== null ||
+    (sourceKind === 'ratings' && parsedRating.value === null)
+
+  if (blockingIssue) {
     return { row: null, issues }
   }
 

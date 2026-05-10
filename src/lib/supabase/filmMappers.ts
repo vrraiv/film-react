@@ -12,7 +12,7 @@ export type FilmEntryRow = {
   user_id: string
   title: string
   release_year: number | null
-  date_watched: string
+  date_watched: string | null
   rating: number | null
   tags: string[]
   notes: string
@@ -53,7 +53,7 @@ export const mapFilmEntryToRow = (film: FilmEntry, userId: string): FilmEntryRow
   user_id: userId,
   title: film.title,
   release_year: film.releaseYear,
-  date_watched: film.dateWatched,
+  date_watched: film.dateWatched ? film.dateWatched : null,
   rating: film.rating,
   tags: film.tags,
   notes: film.notes,
@@ -67,7 +67,7 @@ export const mapRowToFilmEntry = (row: FilmEntryRow): FilmEntry => ({
   id: row.id,
   title: row.title,
   releaseYear: row.release_year,
-  dateWatched: row.date_watched,
+  dateWatched: row.date_watched ?? '',
   rating: row.rating,
   tags: row.tags,
   notes: row.notes,

@@ -91,6 +91,7 @@ export function SettingsPage() {
         <p><Link to="/settings/taste-diagnostics">Open taste review →</Link></p>
         <p><Link to="/settings/tag-metadata">Open tag notes editor →</Link></p>
         <p><Link to="/settings/recommender-config">Open recommender config →</Link></p>
+        <p><Link to="/settings/watch-date-backlog">Open watch date backlog →</Link></p>
         <p className="page__copy">Review how your tags are being used and spot anything that needs cleanup.</p>
 
         {error ? <p className="empty-state">{error}</p> : null}

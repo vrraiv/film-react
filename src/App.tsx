@@ -16,6 +16,7 @@ import { RecommenderConfigPage } from './pages/RecommenderConfigPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TagMetadataPage } from './pages/TagMetadataPage'
 import { TasteDiagnosticsPage } from './pages/TasteDiagnosticsPage'
+import { WatchDateBacklogPage } from './pages/WatchDateBacklogPage'
 import { LoginPage } from './pages/auth/LoginPage'
 
 const LetterboxdImportPage = lazy(() =>
@@ -88,6 +89,14 @@ function App() {
           element={(
             <ProtectedRoute>
               <RecommenderConfigPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="settings/watch-date-backlog"
+          element={(
+            <ProtectedRoute>
+              <WatchDateBacklogPage />
             </ProtectedRoute>
           )}
         />

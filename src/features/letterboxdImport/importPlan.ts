@@ -189,7 +189,8 @@ export const planLetterboxdImport = (
         row,
         status: 'rating-only',
         action: 'create',
-        message: 'No diary entry matched this rating row. It can be imported using the rating date.',
+        message:
+          'No diary entry matched this rating row. It will import without a watched date — fill it in later from the diary if you remember when you watched it.',
         canSelect: true,
         selectedByDefault: true,
       }

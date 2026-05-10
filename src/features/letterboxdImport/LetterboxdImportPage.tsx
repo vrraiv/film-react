@@ -145,13 +145,19 @@ const findFuzzyTmdbMatch = (
 const toTmdbMetadata = (details: FilmTmdbMetadata): FilmTmdbMetadata => ({
   id: details.id,
   title: details.title,
+  releaseDate: details.releaseDate,
   releaseYear: details.releaseYear,
   posterPath: details.posterPath,
   posterUrl: details.posterUrl,
   director: details.director,
   runtime: details.runtime,
+  popularity: details.popularity,
+  voteAverage: details.voteAverage,
   genres: details.genres,
   cast: details.cast,
+  countries: details.countries,
+  languages: details.languages,
+  keywords: details.keywords,
 })
 
 const isLetterboxdImport = (film: FilmEntry) =>

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../auth/useAuth'
 import {
   buildPersonalRecommendations,
   type FilmRecommendation,
@@ -15,6 +16,8 @@ import {
 } from '../features/recommendations/recommenderConfigStorage'
 import { buildMlDatasetExport, serializeMlDatasetExport } from '../features/mlDataset/datasetExport'
 import { useFilms } from '../hooks/useFilms'
+import { fetchPublicFilmEntries } from '../services/publicFilmProfileService'
+import type { FilmEntry } from '../types/film'
 
 type TypeFilter = 'all' | Exclude<RecommendationType, 'rewatch_candidate'>
 type RuntimeFilter = 'all' | 'short' | 'standard' | 'long'
@@ -36,7 +39,25 @@ const runtimeLabels: Record<RuntimeFilter, string> = {
 }
 
 const readonlyTagLimit = 5
+const publicRecommendationLimit = 8
 const scorePct = (value: number) => `${Math.round(value * 100)}`
+
+const getFilmTmdbId = (film: FilmEntry) => film.metadata.tmdb?.id ?? film.tmdbMetadata?.id ?? null
+
+const hydratePublicFilmForRecommender = (film: FilmEntry): FilmEntry => {
+  const tmdb = film.metadata.tmdb ?? film.tmdbMetadata ?? null
+
+  if (!tmdb) return film
+
+  return {
+    ...film,
+    metadata: {
+      ...film.metadata,
+      tmdb,
+      keywords: film.metadata.keywords ?? tmdb.keywords?.map((value) => ({ source: 'tmdb' as const, value })),
+    },
+  }
+}
 
 const configFieldLabels: Array<{
   key: keyof Pick<
@@ -86,7 +107,15 @@ const runtimeMatches = (recommendation: FilmRecommendation, filter: RuntimeFilte
 }
 
 export function RecommendationsPage() {
-  const { films, isLoading: filmsLoading, error: filmsError } = useFilms()
+  const { user, loading: authLoading } = useAuth()
+  const isOwner = Boolean(user)
+  const { films: privateFilms, isLoading: privateFilmsLoading, error: privateFilmsError } = useFilms(
+    undefined,
+    { enabled: isOwner },
+  )
+  const [publicFilms, setPublicFilms] = useState<FilmEntry[]>([])
+  const [isLoadingPublicFilms, setIsLoadingPublicFilms] = useState(false)
+  const [publicError, setPublicError] = useState<string | null>(null)
   const [recommendations, setRecommendations] = useState<FilmRecommendation[]>([])
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
@@ -94,18 +123,81 @@ export function RecommendationsPage() {
   const [runtimeFilter, setRuntimeFilter] = useState<RuntimeFilter>('all')
   const [includeWatched, setIncludeWatched] = useState(false)
   const [seedTmdbId, setSeedTmdbId] = useState('')
-  const [recommenderConfig, setRecommenderConfig] = useState(() => loadStoredRecommenderConfig())
+  const [recommenderConfig, setRecommenderConfig] = useState<RecommenderConfig>(DEFAULT_RECOMMENDER_CONFIG)
   const [validationFraction, setValidationFraction] = useState(0.2)
 
+  const activeFilms = useMemo(
+    () => isOwner ? privateFilms : publicFilms.map(hydratePublicFilmForRecommender),
+    [isOwner, privateFilms, publicFilms],
+  )
+  const filmsLoading = isOwner ? privateFilmsLoading : authLoading || isLoadingPublicFilms
+  const filmsError = isOwner ? privateFilmsError : publicError
+  const activeConfig = isOwner ? recommenderConfig : DEFAULT_RECOMMENDER_CONFIG
+  const filmDataLabel = isOwner ? 'diary data' : 'public diary data'
+
+  useEffect(() => {
+    if (isOwner) {
+      setRecommenderConfig(loadStoredRecommenderConfig())
+    } else {
+      setRecommenderConfig(DEFAULT_RECOMMENDER_CONFIG)
+    }
+  }, [isOwner])
+
+  useEffect(() => {
+    setRecommendations([])
+    setRecommendationError(null)
+    setSeedTmdbId('')
+    setTypeFilter('all')
+    setRuntimeFilter('all')
+    setIncludeWatched(false)
+  }, [isOwner])
+
+  useEffect(() => {
+    if (authLoading || isOwner) {
+      return
+    }
+
+    let isMounted = true
+
+    const loadPublicFilms = async () => {
+      setIsLoadingPublicFilms(true)
+      setPublicError(null)
+
+      try {
+        const nextFilms = await fetchPublicFilmEntries()
+
+        if (isMounted) {
+          setPublicFilms(nextFilms)
+        }
+      } catch {
+        if (isMounted) {
+          setPublicError('We could not load public diary data right now.')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPublicFilms(false)
+        }
+      }
+    }
+
+    void loadPublicFilms()
+
+    return () => {
+      isMounted = false
+    }
+  }, [authLoading, isOwner])
+
   const seedOptions = useMemo(() =>
-    films
-      .filter((film) => film.metadata.tmdb?.id && film.rating !== null)
+    activeFilms
+      .filter((film) => getFilmTmdbId(film) !== null && film.rating !== null)
       .sort((left, right) =>
         (right.rating ?? 0) - (left.rating ?? 0) ||
         left.title.localeCompare(right.title),
       )
       .slice(0, 80),
-  [films])
+  [activeFilms])
+
+  const hasUsableSeeds = seedOptions.length > 0
 
   const filteredRecommendations = useMemo(() =>
     recommendations.filter((recommendation) => {
@@ -121,10 +213,12 @@ export function RecommendationsPage() {
     setRecommendationError(null)
 
     try {
-      const nextRecommendations = await buildPersonalRecommendations(films, {
-        includeWatched,
+      const nextRecommendations = await buildPersonalRecommendations(activeFilms, {
+        includeWatched: isOwner ? includeWatched : false,
         seedTmdbId: seedTmdbId ? Number(seedTmdbId) : null,
-        config: recommenderConfig,
+        maxSeeds: isOwner ? undefined : 1,
+        maxEnrichedCandidates: isOwner ? undefined : publicRecommendationLimit,
+        config: activeConfig,
       })
       setRecommendations(nextRecommendations)
     } catch (error) {
@@ -142,7 +236,7 @@ export function RecommendationsPage() {
   }
 
   const exportMlDataset = () => {
-    const dataset = buildMlDatasetExport(films, {
+    const dataset = buildMlDatasetExport(privateFilms, {
       candidates: recommendations,
       config: recommenderConfig,
       validationFraction,
@@ -160,48 +254,73 @@ export function RecommendationsPage() {
     <section className="page">
       <header className="page__hero">
         <span className="eyebrow">Personal recommendations</span>
-        <h2 className="page__title">Deterministic picks from your diary</h2>
-        <p className="page__copy">
-          Private V1 recommender using diary ratings, manual tags, TMDb metadata, and explainable feature matches.
-        </p>
+        <h2 className="page__title">
+          {isOwner ? 'Deterministic picks from your diary' : 'Find something to watch from a film you already like'}
+        </h2>
+        {isOwner ? (
+          <p className="page__copy">
+            Private V1 recommender using diary ratings, manual tags, TMDb metadata, and explainable feature matches.
+          </p>
+        ) : (
+          <>
+            <p className="page__copy">
+              Pick a movie I&apos;ve rated that you like, and get recommendations on what to watch if you liked it.
+              The results start with movies that TMDB connects to that pick, then they are re-ranked through the
+              patterns in my public diary.
+            </p>
+            <p className="page__copy">
+              The ranking favors films that overlap with things I have repeatedly responded to: high ratings,
+              recurring tags, genres, keywords, directors, countries, languages, decades, and runtime ranges. A movie
+              can move up when it shares traits with films I loved, and it can move down when those same traits have
+              been more mixed for me. Each card includes a short reason so the list reads less like a mystery score and
+              more like a trail of taste clues.
+            </p>
+          </>
+        )}
       </header>
 
       <section className="panel recommendations-controls">
         <div className="panel__header">
           <h3 className="panel__title">Build recommendations</h3>
           <p className="page__copy">
-            Seeds come from films rated {recommenderConfig.ratingPositiveThreshold.toFixed(1)}+ unless a specific seed is selected.
+            {isOwner
+              ? `Seeds come from films rated ${activeConfig.ratingPositiveThreshold.toFixed(1)}+ unless a specific seed is selected.`
+              : `Choose one of my public ${activeConfig.ratingPositiveThreshold.toFixed(1)}+ ratings, or leave the picker on the default to let the page use a strong favorite as the starting point.`}
           </p>
         </div>
 
         <div className="taste-filters">
-          <label>
-            Recommendation type
-            <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}>
-              <option value="all">All recommendation types</option>
-              <option value="safe_bet">Safe bet</option>
-              <option value="worth_the_gamble">Worth the gamble</option>
-              <option value="stretch_pick">Stretch</option>
-              <option value="deep_cut">Deep cut</option>
-              <option value="underexplored_fit">Underexplored fit</option>
-            </select>
-          </label>
+          {isOwner ? (
+            <>
+              <label>
+                Recommendation type
+                <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}>
+                  <option value="all">All recommendation types</option>
+                  <option value="safe_bet">Safe bet</option>
+                  <option value="worth_the_gamble">Worth the gamble</option>
+                  <option value="stretch_pick">Stretch</option>
+                  <option value="deep_cut">Deep cut</option>
+                  <option value="underexplored_fit">Underexplored fit</option>
+                </select>
+              </label>
 
-          <label>
-            Runtime
-            <select value={runtimeFilter} onChange={(event) => setRuntimeFilter(event.target.value as RuntimeFilter)}>
-              {Object.entries(runtimeLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
+              <label>
+                Runtime
+                <select value={runtimeFilter} onChange={(event) => setRuntimeFilter(event.target.value as RuntimeFilter)}>
+                  {Object.entries(runtimeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          ) : null}
 
           <label>
             Something like this
             <select value={seedTmdbId} onChange={(event) => setSeedTmdbId(event.target.value)}>
-              <option value="">Use high-rated diary seeds</option>
+              <option value="">{isOwner ? 'Use high-rated diary seeds' : 'Use a top public favorite'}</option>
               {seedOptions.map((film) => (
-                <option key={film.id} value={film.metadata.tmdb?.id}>
+                <option key={film.id} value={getFilmTmdbId(film) ?? ''}>
                   {film.title}{film.releaseYear ? ` (${film.releaseYear})` : ''} - {film.rating?.toFixed(1)}
                 </option>
               ))}
@@ -209,80 +328,98 @@ export function RecommendationsPage() {
           </label>
         </div>
 
-        <label className="check-pill">
-          <input
-            type="checkbox"
-            checked={includeWatched}
-            onChange={(event) => setIncludeWatched(event.target.checked)}
-          />
-          Include watched / rewatch candidates
-        </label>
+        {isOwner ? (
+          <label className="check-pill">
+            <input
+              type="checkbox"
+              checked={includeWatched}
+              onChange={(event) => setIncludeWatched(event.target.checked)}
+            />
+            Include watched / rewatch candidates
+          </label>
+        ) : null}
 
         <div className="button-row">
           <button
             className="button-primary"
             type="button"
             onClick={() => void generateRecommendations()}
-            disabled={filmsLoading || isLoadingRecommendations || films.length === 0}
+            disabled={filmsLoading || isLoadingRecommendations || !hasUsableSeeds}
           >
             {isLoadingRecommendations ? 'Scoring recommendations...' : 'Generate recommendations'}
           </button>
         </div>
       </section>
 
-      <RecommenderConfigPanel
-        config={recommenderConfig}
-        onChange={updateRecommenderConfig}
-      />
+      {isOwner ? (
+        <RecommenderConfigPanel
+          config={recommenderConfig}
+          onChange={updateRecommenderConfig}
+        />
+      ) : null}
 
-      <section className="panel recommendations-controls">
-        <div className="panel__header">
-          <h3 className="panel__title">ML dataset export</h3>
-          <p className="page__copy">
-            Exports logged films plus the current generated recommendation candidates. Candidate rows are marked as unknown sampled rows, not dislikes.
-          </p>
-        </div>
+      {isOwner ? (
+        <section className="panel recommendations-controls">
+          <div className="panel__header">
+            <h3 className="panel__title">ML dataset export</h3>
+            <p className="page__copy">
+              Exports logged films plus the current generated recommendation candidates. Candidate rows are marked as unknown sampled rows, not dislikes.
+            </p>
+          </div>
 
-        <div className="taste-filters">
-          <label>
-            Validation fraction
-            <input
-              type="number"
-              min={0.05}
-              max={0.5}
-              step={0.05}
-              value={validationFraction}
-              onChange={(event) => setValidationFraction(Math.max(0.05, Math.min(0.5, Number(event.target.value) || 0.2)))}
-            />
-          </label>
-        </div>
+          <div className="taste-filters">
+            <label>
+              Validation fraction
+              <input
+                type="number"
+                min={0.05}
+                max={0.5}
+                step={0.05}
+                value={validationFraction}
+                onChange={(event) => setValidationFraction(Math.max(0.05, Math.min(0.5, Number(event.target.value) || 0.2)))}
+              />
+            </label>
+          </div>
 
-        <div className="button-row">
-          <button
-            className="button-secondary"
-            type="button"
-            onClick={exportMlDataset}
-            disabled={filmsLoading || films.length === 0}
-          >
-            Export ML dataset JSON
-          </button>
-        </div>
-      </section>
+          <div className="button-row">
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={exportMlDataset}
+              disabled={filmsLoading || privateFilms.length === 0}
+            >
+              Export ML dataset JSON
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-      {filmsError ? <section className="shell-card"><p className="empty-state">Could not load diary data: {filmsError}</p></section> : null}
+      {filmsError ? <section className="shell-card"><p className="empty-state">Could not load {filmDataLabel}: {filmsError}</p></section> : null}
       {recommendationError ? <section className="shell-card"><p className="empty-state">Could not generate recommendations: {recommendationError}</p></section> : null}
-      {filmsLoading ? <section className="shell-card"><p className="page__copy">Loading diary data...</p></section> : null}
+      {filmsLoading ? <section className="shell-card"><p className="page__copy">Loading {filmDataLabel}...</p></section> : null}
 
       {!filmsLoading && recommendations.length === 0 && !recommendationError ? (
         <section className="shell-card">
-          <p className="empty-state">Generate recommendations to fetch TMDb candidates and score them against your taste profile.</p>
+          <p className="empty-state">
+            {hasUsableSeeds
+              ? isOwner
+                ? 'Generate recommendations to fetch TMDb candidates and score them against the taste profile.'
+                : 'Generate recommendations to turn that public diary pick into a short watchlist with plain-English reasons.'
+              : isOwner
+                ? 'Recommendations need rated diary films with TMDb metadata.'
+                : 'Recommendations need public films with ratings and TMDb metadata.'}
+          </p>
         </section>
       ) : null}
 
       {filteredRecommendations.length > 0 ? (
         <section className="recommendation-list">
           {filteredRecommendations.map((recommendation) => (
-            <RecommendationCard key={`${recommendation.tmdbId}-${recommendation.recommendationType}`} recommendation={recommendation} />
+            <RecommendationCard
+              key={`${recommendation.tmdbId}-${recommendation.recommendationType}`}
+              recommendation={recommendation}
+              showOwnerDetails={isOwner}
+            />
           ))}
         </section>
       ) : recommendations.length > 0 ? (
@@ -375,11 +512,20 @@ function RecommenderConfigPanel({
   )
 }
 
-function RecommendationCard({ recommendation }: { recommendation: FilmRecommendation }) {
+function RecommendationCard({
+  recommendation,
+  showOwnerDetails,
+}: {
+  recommendation: FilmRecommendation
+  showOwnerDetails: boolean
+}) {
   const [isGenreListExpanded, setIsGenreListExpanded] = useState(false)
   const visibleGenres = isGenreListExpanded ? recommendation.genres : recommendation.genres.slice(0, readonlyTagLimit)
   const hiddenGenreCount = Math.max(0, recommendation.genres.length - readonlyTagLimit)
   const genreListLabel = recommendation.genres.join(', ')
+  const primaryReasons = showOwnerDetails
+    ? recommendation.primaryReasons
+    : recommendation.primaryReasons.slice(0, 3)
 
   return (
     <article className="film-card recommendation-card">
@@ -420,7 +566,7 @@ function RecommendationCard({ recommendation }: { recommendation: FilmRecommenda
             </p>
           ) : null}
 
-          {recommendation.cast.length > 0 ? (
+          {showOwnerDetails && recommendation.cast.length > 0 ? (
             <div>
               <h4 className="recommendation-card__subhead">Cast</h4>
               <p className="page__copy">{recommendation.cast.join(', ')}</p>
@@ -448,11 +594,15 @@ function RecommendationCard({ recommendation }: { recommendation: FilmRecommenda
             </div>
           ) : null}
 
-          <ExplanationBlock title="Why it fits" items={recommendation.primaryReasons} emptyText="No strong grounded reasons yet." />
-          <ExplanationBlock title="Manual override effects" items={recommendation.overrideReasons} emptyText="No manual overrides materially affected this score." />
-          <ExplanationBlock title="Cautions" items={recommendation.cautions} emptyText="No major grounded cautions." />
+          <ExplanationBlock title="Why it fits" items={primaryReasons} emptyText="No strong grounded reasons yet." />
+          {showOwnerDetails ? (
+            <>
+              <ExplanationBlock title="Manual override effects" items={recommendation.overrideReasons} emptyText="No manual overrides materially affected this score." />
+              <ExplanationBlock title="Cautions" items={recommendation.cautions} emptyText="No major grounded cautions." />
+            </>
+          ) : null}
 
-          {recommendation.similarLikedFilms.length > 0 ? (
+          {showOwnerDetails && recommendation.similarLikedFilms.length > 0 ? (
             <div>
               <h4 className="recommendation-card__subhead">Similar liked diary films</h4>
               <p className="page__copy">

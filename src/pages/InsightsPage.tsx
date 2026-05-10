@@ -227,7 +227,6 @@ export function InsightsPage() {
           ) : null}
         </div>
         <div className="insights-pills">
-          {!user ? <span className="meta-pill">Public preview</span> : null}
           {period !== 'all' ? (
             <span className="meta-pill meta-pill--soft">{scopeLabel}</span>
           ) : null}

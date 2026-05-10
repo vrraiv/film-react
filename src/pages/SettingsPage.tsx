@@ -3,6 +3,10 @@ import { useMemo, useState } from 'react'
 import { useFilms } from '../hooks/useFilms'
 import { buildTagUsageSummary } from '../features/tagDiagnostics/tagDiagnostics'
 import { buildMetadataCompleteness, backfillTmdbKeywords, type KeywordBackfillResult } from '../services/tmdbKeywordEnrichmentService'
+import {
+  inferFirstWatchesFromTmdbReleaseDates,
+  type FirstWatchInferenceResult,
+} from '../services/firstWatchInferenceService'
 import { useAuth } from '../auth/useAuth'
 import { createFilmLogService } from '../services/filmLogService'
 
@@ -15,9 +19,17 @@ export function SettingsPage() {
   const [forceBackfill, setForceBackfill] = useState(false)
   const [backfillResult, setBackfillResult] = useState<KeywordBackfillResult | null>(null)
   const [progressLog, setProgressLog] = useState<string[]>([])
+  const [isInferringFirstWatches, setIsInferringFirstWatches] = useState(false)
+  const [firstWatchResult, setFirstWatchResult] = useState<FirstWatchInferenceResult | null>(null)
+  const [firstWatchProgressLog, setFirstWatchProgressLog] = useState<string[]>([])
 
   const summary = useMemo(() => buildTagUsageSummary(films), [films])
   const metadata = useMemo(() => buildMetadataCompleteness(films), [films])
+  const firstWatchStats = useMemo(() => ({
+    markedFirst: films.filter((film) => film.metadata.firstWatch === true).length,
+    markedRewatch: films.filter((film) => film.metadata.firstWatch === false).length,
+    unset: films.filter((film) => film.metadata.firstWatch === null || film.metadata.firstWatch === undefined).length,
+  }), [films])
 
   const runBackfill = async () => {
     if (!user) return
@@ -36,6 +48,27 @@ export function SettingsPage() {
     setBackfillResult(result)
     await reloadFilms()
     setIsBackfilling(false)
+  }
+
+  const runFirstWatchInference = async () => {
+    if (!user) return
+
+    setIsInferringFirstWatches(true)
+    setFirstWatchResult(null)
+    setFirstWatchProgressLog([])
+
+    try {
+      const service = createFilmLogService(user.id)
+      const result = await inferFirstWatchesFromTmdbReleaseDates(service, films, {
+        onProgress: (message) => {
+          setFirstWatchProgressLog((current) => [...current.slice(-199), message])
+        },
+      })
+      setFirstWatchResult(result)
+      await reloadFilms()
+    } finally {
+      setIsInferringFirstWatches(false)
+    }
   }
 
   return (
@@ -84,6 +117,39 @@ export function SettingsPage() {
           </pre>
         ) : null}
 
+      </section>
+
+      <section className="shell-card" aria-label="First watch inference panel">
+        <h3>First watch guesses</h3>
+        <p className="page__copy">
+          Use TMDb release dates to fill in likely first watches. This only changes entries where
+          "First watch?" is not set. If a film was watched before its official TMDb release date,
+          or within 365 days after it, it will be marked as a first watch. Older watches stay unset.
+        </p>
+        <ul className="insight-list">
+          <li>Marked first watches: {firstWatchStats.markedFirst}</li>
+          <li>Marked rewatches: {firstWatchStats.markedRewatch}</li>
+          <li>Not set: {firstWatchStats.unset}</li>
+        </ul>
+        <p>
+          <button
+            type="button"
+            onClick={() => void runFirstWatchInference()}
+            disabled={isInferringFirstWatches || isLoading || !user}
+          >
+            {isInferringFirstWatches ? 'Checking TMDb release dates...' : 'Guess first watches from release dates'}
+          </button>
+        </p>
+        {firstWatchResult ? (
+          <p className="page__copy">
+            Marked {firstWatchResult.markedFirstWatch}, saved release date only {firstWatchResult.savedReleaseDateOnly}, outside 1-year window {firstWatchResult.outsideWindow}, skipped existing value {firstWatchResult.skippedExistingFirstWatch}, skipped missing TMDb ID {firstWatchResult.skippedMissingTmdbId}, failed {firstWatchResult.failed}.
+          </p>
+        ) : null}
+        {firstWatchProgressLog.length > 0 ? (
+          <pre style={{ maxHeight: 220, overflow: 'auto', fontSize: '0.8rem' }}>
+            {firstWatchProgressLog.join('\n')}
+          </pre>
+        ) : null}
       </section>
 
       <section className="shell-card" aria-label="Tag review panel">

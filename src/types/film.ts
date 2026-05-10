@@ -10,6 +10,7 @@ export type OwnedMediaFormat = '4k-uhd' | 'blu-ray' | 'dvd' | 'vhs'
 export type FilmTmdbMetadata = {
   id: number
   title?: string
+  releaseDate?: string | null
   releaseYear?: number | null
   posterPath: string | null
   posterUrl: string | null

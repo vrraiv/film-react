@@ -27,6 +27,7 @@ export type FilmEntryRow = {
     tmdb: {
       id: number
       title?: string
+      releaseDate?: string | null
       releaseYear?: number | null
       posterPath: string | null
       posterUrl: string | null

@@ -61,12 +61,17 @@ export default async (request: Request) => {
     .filter((name, index, all) => all.indexOf(name) === index)
   const posterPath =
     typeof movie.poster_path === 'string' || movie.poster_path === null ? movie.poster_path : null
+  const releaseDate =
+    typeof movie.release_date === 'string' && movie.release_date.trim().length > 0
+      ? movie.release_date
+      : null
 
   return jsonResponse(200, {
     id: typeof movie.id === 'number' ? movie.id : null,
     title: typeof movie.title === 'string' ? movie.title : 'Unknown title',
     overview: typeof movie.overview === 'string' && movie.overview.trim().length > 0 ? movie.overview : null,
-    releaseYear: typeof movie.release_date === 'string' ? Number(movie.release_date.slice(0, 4)) : null,
+    releaseDate,
+    releaseYear: releaseDate ? Number(releaseDate.slice(0, 4)) : null,
     runtime: typeof movie.runtime === 'number' ? movie.runtime : null,
     popularity: typeof movie.popularity === 'number' ? movie.popularity : null,
     voteAverage: typeof movie.vote_average === 'number' ? movie.vote_average : null,

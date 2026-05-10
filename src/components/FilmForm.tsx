@@ -101,13 +101,19 @@ export function FilmForm({ isSaving, onSubmit, initialValues, submitLabel = 'Add
         releaseYear: details.releaseYear ? String(details.releaseYear) : current.releaseYear,
         tmdb: {
           id: details.id,
+          title: details.title,
+          releaseDate: details.releaseDate,
+          releaseYear: details.releaseYear,
           posterPath: details.posterPath,
           posterUrl: details.posterUrl,
           director: details.director,
           runtime: details.runtime,
           popularity: details.popularity,
+          voteAverage: details.voteAverage,
           genres: details.genres,
           cast: details.cast,
+          countries: details.countries,
+          languages: details.languages,
         },
       }))
       setSearchResults([])

@@ -24,6 +24,7 @@ export function RatingHistogram({ buckets, ratedCount }: RatingHistogramProps) {
         <div className="rating-histogram rating-histogram--feature" role="img" aria-label={summary}>
           {buckets.map((bucket) => {
             const isMinor = (bucket.rating * 10) % 10 !== 0
+            const isPeak = max > 0 && bucket.count === max
             const heightPct = max
               ? Math.max((bucket.count / max) * 100, bucket.count > 0 ? 12 : 0)
               : 0
@@ -40,7 +41,11 @@ export function RatingHistogram({ buckets, ratedCount }: RatingHistogramProps) {
                 >
                   {bucket.count}
                 </span>
-                <span className="rating-histogram__fill" style={{ height: `${heightPct}%` }} />
+                <span
+                  className="rating-histogram__fill"
+                  data-peak={isPeak ? 'true' : undefined}
+                  style={{ height: `${heightPct}%` }}
+                />
                 <span className="rating-histogram__label" data-minor={isMinor ? 'true' : undefined}>
                   {bucket.rating.toFixed(1)}
                 </span>

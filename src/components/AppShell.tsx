@@ -6,6 +6,7 @@ const publicNavItems = [
   { to: '/', label: 'Home' },
   { to: '/diary', label: 'Film Diary' },
   { to: '/insights', label: 'Insights' },
+  { to: '/recommendations', label: 'Recommendations' },
   { to: '/taste', label: 'Shared Picks' },
 ]
 

@@ -25,6 +25,7 @@ export type TmdbMovieDetails = {
   id: number
   title: string
   overview: string | null
+  releaseDate: string | null
   releaseYear: number | null
   runtime: number | null
   popularity: number | null

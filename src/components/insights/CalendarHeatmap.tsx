@@ -83,12 +83,19 @@ export function CalendarHeatmap({ cells, max, start, end }: CalendarHeatmapProps
           )}
         </svg>
       </div>
-      <div className="cal-legend" aria-hidden="true">
-        <span className="meta">Less</span>
+      <div
+        className="cal-legend"
+        aria-label={`Calendar color scale from 0 to ${max} watches per day`}
+      >
+        <span className="meta">Daily count</span>
         {[0, 1, 2, 3, 4].map((step) => (
-          <span key={step} className={`cal-cell cal-cell--${step} cal-legend__swatch`} />
+          <span
+            key={step}
+            className={`cal-cell cal-cell--${step} cal-legend__swatch`}
+            aria-hidden="true"
+          />
         ))}
-        <span className="meta">More</span>
+        <span className="meta">0-{max}</span>
       </div>
     </figure>
   )

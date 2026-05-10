@@ -79,6 +79,9 @@ const parseMetadata = (value: unknown, legacyContext?: unknown): FilmMetadata =>
     onWishlist: typeof record.onWishlist === 'boolean' ? record.onWishlist : false,
     tmdb: record.tmdb && typeof record.tmdb === 'object' ? {
       id: typeof (record.tmdb as Record<string, unknown>).id === 'number' ? ((record.tmdb as Record<string, unknown>).id as number) : 0,
+      title: typeof (record.tmdb as Record<string, unknown>).title === 'string' ? (record.tmdb as Record<string, unknown>).title as string : undefined,
+      releaseDate: typeof (record.tmdb as Record<string, unknown>).releaseDate === 'string' ? (record.tmdb as Record<string, unknown>).releaseDate as string : null,
+      releaseYear: typeof (record.tmdb as Record<string, unknown>).releaseYear === 'number' ? (record.tmdb as Record<string, unknown>).releaseYear as number : null,
       posterPath: typeof (record.tmdb as Record<string, unknown>).posterPath === 'string' ? (record.tmdb as Record<string, unknown>).posterPath as string : null,
       posterUrl: typeof (record.tmdb as Record<string, unknown>).posterUrl === 'string' ? (record.tmdb as Record<string, unknown>).posterUrl as string : null,
       director: typeof (record.tmdb as Record<string, unknown>).director === 'string' ? (record.tmdb as Record<string, unknown>).director as string : null,

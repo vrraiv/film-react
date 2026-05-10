@@ -50,14 +50,7 @@ function App() {
           )}
         />
         <Route path="insights" element={<InsightsPage />} />
-        <Route
-          path="recommendations"
-          element={(
-            <ProtectedRoute>
-              <RecommendationsPage />
-            </ProtectedRoute>
-          )}
-        />
+        <Route path="recommendations" element={<RecommendationsPage />} />
         <Route
           path="settings"
           element={(

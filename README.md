@@ -6,7 +6,18 @@ Personal film diary built with React, Vite, TypeScript, Supabase Auth, and Supab
 
 A personal film diary that doubles as a public showcase: reviews, a taste browser, viewing insights, and an experimental ML recommender. The owner uses signed-in pages to log films, tune the recommender, and import history; everyone else sees the curated public side.
 
-See [`docs/page-structure.md`](docs/page-structure.md) for the page map and the design rationale behind it.
+Start with the canonical project docs: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the current route and data-flow map, [`docs/ROADMAP.md`](docs/ROADMAP.md) for active priorities, and [`docs/HANDOFF.md`](docs/HANDOFF.md) for recent implementation context.
+
+## Project docs
+
+The root and `docs/` layout is intentionally organized for maintainers and agents:
+
+- [`AGENTS.md`](AGENTS.md): agent instructions and documentation-maintenance rules.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): current app structure, route map, and data boundaries.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md): active product, recommendation, and ML priorities.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md): architectural decision log.
+- [`docs/HANDOFF.md`](docs/HANDOFF.md): recent work status and next-step context.
+- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md): unresolved product and technical questions.
 
 ## Local setup
 

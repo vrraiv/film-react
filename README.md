@@ -78,6 +78,37 @@ Do not put a Supabase service role key in this app. Vite exposes `VITE_*` variab
 
 The app uses Supabase email/password auth. Redirect URLs are still useful for auth flows and future email actions such as password recovery.
 
+### New tables: explicit Data API grants
+
+From 2026-05-30 (new Supabase projects) and 2026-10-30 (existing projects), tables created in `public` are no longer auto-exposed to the Data API. Any new `create table` migration in `supabase/migrations/` must ship its own `GRANT`s, or `supabase-js` / PostgREST / GraphQL will return `42501`. RLS still gates rows; these grants gate table-level access for each role.
+
+Template for a new table:
+
+```sql
+create table public.your_table (
+  -- columns…
+);
+
+alter table public.your_table enable row level security;
+
+-- Only grant anon if the table has a policy allowing public reads.
+grant select
+  on public.your_table
+  to anon;
+
+grant select, insert, update, delete
+  on public.your_table
+  to authenticated;
+
+grant all
+  on public.your_table
+  to service_role;
+
+-- Add RLS policies after the grants.
+```
+
+Existing tables (`profiles`, `film_entries`, `tag_metadata`) are covered by `supabase/migrations/014_add_table_grants.sql`.
+
 ## Netlify setup
 
 Build settings are in `netlify.toml`:
